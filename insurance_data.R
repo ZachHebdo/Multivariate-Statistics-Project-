@@ -29,3 +29,53 @@ glimpse(df4)
 na_count <-sapply(df4, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
 
+#impute missing Value
+library(mice)
+df4$Type_fuel <- as.factor(df4$Type_fuel)
+md.pattern(df4)
+imputedData <- mice(df4, method = "rf", m = 1, maxit = 5)
+complet<-complete(imputedData)
+md.pattern(complet)
+
+stripplot(complet, pch = 1, cex = 1.2)
+densityplot(imputedData)
+
+
+stripplot(imputedData, "Type_fuel", pch = 20, cex = 1.2)
+stripplot(imputedData, "Length", pch = 20, cex = 1.2)
+
+
+# Utilisation de xyplot pour visualiser les imputations
+
+write.csv(complet, "C:/Users/jeand/Desktop/travail perso unif/cours maths et eco/db_final.csv", row.names = FALSE)
+library(readr)
+db_final <- read_csv("C:/Users/jeand/Desktop/dataset multivarie/db_final.csv")
+View(db_final)
+
+
+
+db_final <- db_final %>%
+  mutate(Type_risk = case_when(
+    Type_risk == 1 ~ "motorbikes",
+    Type_risk == 2 ~ "vans",
+    Type_risk == 3 ~ "passenger cars",
+    Type_risk == 4 ~ "agricultural vehicles",
+    TRUE ~ as.character(Type_risk)  # Pour gérer les éventuels cas non couverts
+  ))
+
+
+db_final <- db_final %>%
+  mutate(Area = case_when(
+    Area == 0 ~ "rural",
+    Area == 1 ~ "urban",
+    TRUE ~ as.character(Area)  # Pour gérer les éventuels cas non couverts
+  ))
+
+
+
+db_final <- db_final %>%
+  mutate(Second_driver= case_when(
+    Second_driver == 0 ~ "no",
+    Second_driver == 1 ~ "yes",
+    TRUE ~ as.character(Area)  # Pour gérer les éventuels cas non couverts
+  ))
