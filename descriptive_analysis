@@ -63,3 +63,21 @@ ggplot(db_final, aes(x = Type_fuel, y = Premium)) +
   geom_boxplot() +
   labs(x = "Nom de Variable Catégorielle", y = "Nom de Variable Numérique") +
   ggtitle("Relation entre  et ")
+  
+  dfquanti <- data %>% select(where(is.numeric))
+sumtable <- as.data.frame(c(0,0,0,0,0,0,0))
+row.names(sumtable) <- c('Min', 'Q1', 'M�diane','Moyenne','Q3','Max',"NA's")
+for (i in 1:ncol(dfquanti)){
+  x <- as.vector(dfquanti[,i])
+  nas <- dfquanti %>% filter(is.na(x)) %>% nrow()
+  min <- min(x,na.rm = TRUE)
+  Q1 <- unname(quantile(x,.25,na.rm = TRUE))
+  Median <- unname(quantile(x,.5,na.rm = TRUE))
+  Mean <- unname(colMeans(x,na.rm = TRUE))
+  Q3 <- unname(quantile(x,.75,na.rm = TRUE))
+  max <- max(x,na.rm = TRUE)
+  nas <- dfquanti %>% filter(is.na(x)) %>% nrow()
+  sumtable <- sumtable %>% cbind(c(min,Q1,Median,Mean,Q3,max,nas))
+}
+colnames(sumtable) <- c("0",colnames(dfquanti))
+sumtable <- sumtable %>% select(-"0")
