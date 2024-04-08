@@ -79,3 +79,33 @@ db_final <- db_final %>%
     Second_driver == 1 ~ "yes",
     TRUE ~ as.character(Area)  # Pour gÃ©rer les Ã©ventuels cas non couverts
   ))
+
+b_final$age<- 2018- as.numeric(db_final$Birth_year) 
+
+db_final$age <- case_when(db_final$age>15 & db_final$age<=25 ~"15-25",
+                          db_final$age>25 & db_final$age<=35~ "25-35",
+                          db_final$age>35 & db_final$age<=45~"35-45",
+                          db_final$age>45 & db_final$age<=55~"45-55",
+                          db_final$age>55 & db_final$age<=65~"55-65",
+                          db_final$age>65 & db_final$age<=75~"65-75",
+                          db_final$age>75 & db_final$age<=80~"75-85",
+                          db_final$age>80 ~"80+")
+
+db_final$Licence_time<- 2018- as.numeric(db_final$Licence_year) 
+
+db_final <- db_final %>%
+  mutate(Distribution_channel= case_when(
+    Distribution_channel == 0 ~ "agency",
+    Distribution_channel == 1 ~ "brokers",
+    TRUE ~ as.character(Distribution_channel)
+  ))
+
+
+
+
+db_final <- db_final %>%
+  mutate(Payment= case_when(
+    Payment == 0 ~ "annual",
+    Payment == 1 ~ "semester",
+    TRUE ~ as.character(Area)  # Pour gérer les éventuels cas non couverts
+  ))
