@@ -1,8 +1,9 @@
 #library(openxlsx)
 
 library(tidyverse)
+library(dplyr)
 
-setwd("~/Studies/ULB - Masters/Multivariate Statistical Analysis/Project")
+#setwd("~/Studies/ULB - Masters/Multivariate Statistical Analysis/Project")
 #df <- read.xlsx('TF_VEHICLES_COLLISION_2022.xlsx')
 
 df <- read.csv('Motor vehicle insurance data.csv', sep = ";")
@@ -29,7 +30,7 @@ glimpse(df4)
 na_count <-sapply(df4, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
 
-#impute missing Value
+#impute missing Value getting rid of the NA values through random forest 
 library(mice)
 df4$Type_fuel <- as.factor(df4$Type_fuel)
 md.pattern(df4)
@@ -51,8 +52,11 @@ write.csv(complet, "C:/Users/jeand/Desktop/travail perso unif/cours maths et eco
 library(readr)
 db_final <- read_csv("C:/Users/jeand/Desktop/dataset multivarie/db_final.csv")
 View(db_final)
+db_final = read_csv("db_final.csv")
 
 
+# this part is to change the columns that have numbers while they are categorical
+# into purely categorical columns which will make it easier to run categorization
 
 db_final <- db_final %>%
   mutate(Type_risk = case_when(
@@ -80,8 +84,11 @@ db_final <- db_final %>%
     TRUE ~ as.character(Area)  # Pour gÃ©rer les Ã©ventuels cas non couverts
   ))
 
-b_final$age<- 2018- as.numeric(db_final$Birth_year) 
 
+# to get age instead of birthdate, easier to categorise 
+db_final$age<- 2018- as.numeric(db_final$Birth_year) 
+
+# creating classes per age 
 db_final$age <- case_when(db_final$age>15 & db_final$age<=25 ~"15-25",
                           db_final$age>25 & db_final$age<=35~ "25-35",
                           db_final$age>35 & db_final$age<=45~"35-45",
@@ -91,8 +98,10 @@ db_final$age <- case_when(db_final$age>15 & db_final$age<=25 ~"15-25",
                           db_final$age>75 & db_final$age<=80~"75-85",
                           db_final$age>80 ~"80+")
 
-db_final$Licence_time<- 2018- as.numeric(db_final$Licence_year) 
+# to get licence age, added +1, because new drivers would have value of 0 
+db_final$Licence_time<- 2018- as.numeric(db_final$Licence_year)+ 1 
 
+#creation of classes for agence nd brokers instead of 0 and 1 
 db_final <- db_final %>%
   mutate(Distribution_channel= case_when(
     Distribution_channel == 0 ~ "agency",
@@ -100,12 +109,10 @@ db_final <- db_final %>%
     TRUE ~ as.character(Distribution_channel)
   ))
 
-
-
-
+#creation of class for payment 
 db_final <- db_final %>%
   mutate(Payment= case_when(
     Payment == 0 ~ "annual",
     Payment == 1 ~ "semester",
-    TRUE ~ as.character(Area)  # Pour gérer les éventuels cas non couverts
+    TRUE ~ as.character(Area)  # Pour g?rer les ?ventuels cas non couverts
   ))
