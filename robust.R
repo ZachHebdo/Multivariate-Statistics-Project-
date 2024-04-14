@@ -1,5 +1,5 @@
 ### Analyse robuste ----
-library(robuste)
+library(robust)
 library(tidyverse)
 library(dplyr)
 
@@ -23,4 +23,4 @@ for(i in 1:ncol(dfquanti)){
    plot(DD[,1], main = title, xlab = "", ylab ="")
    abline(h=h1, col = 'red')
    abline(h=h2, col = 'red')
- }
+}

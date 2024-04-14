@@ -1,4 +1,6 @@
 #analyse descriptive de notre portefeuille 
+library(ggplot2)
+library(scales)
 
 #frequence de sinistre
 ggplot(db_final, aes(x=N_claims_year))+
@@ -67,6 +69,7 @@ ggplot(db_final, aes(x = Type_fuel, y = Premium)) +
   dfquanti <- data %>% select(where(is.numeric))
 sumtable <- as.data.frame(c(0,0,0,0,0,0,0))
 row.names(sumtable) <- c('Min', 'Q1', 'M?diane','Moyenne','Q3','Max',"NA's")
+
 for (i in 1:ncol(dfquanti)){
   x <- as.vector(dfquanti[,i])
   nas <- dfquanti %>% filter(is.na(x)) %>% nrow()
