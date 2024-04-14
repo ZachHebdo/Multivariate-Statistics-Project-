@@ -27,6 +27,8 @@ df4 <- df$data[[4]] %>% mutate(Start_year = as.integer(gsub("^.*/", "", Date_sta
 
 glimpse(df4)
 
+df4$Distribution_channel <- ifelse(df4$Distribution_channel == "00/01/1900", "0", df4$Distribution_channel) 
+
 na_count <-sapply(df4, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
 
