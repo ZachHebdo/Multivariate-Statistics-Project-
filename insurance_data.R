@@ -1,11 +1,18 @@
 #library(openxlsx)
-
+library(mice)
 library(tidyverse)
 library(dplyr)
 
-#setwd("~/Studies/ULB - Masters/Multivariate Statistical Analysis/Project")
-#df <- read.xlsx('TF_VEHICLES_COLLISION_2022.xlsx')
+library(readr)
+db_final <- read_csv("db_final.csv")
+View(db_final)
 
+
+
+Motor_vehicle_insurance_data <- read_delim("Desktop/travail perso unif/cours maths et eco /multivariee/Motor vehicle insurance data.csv", 
+                                           delim = ";", escape_double = FALSE, trim_ws = TRUE)
+View(Motor_vehicle_insurance_data)
+df<-Motor_vehicle_insurance_data
 df <- read.csv('Motor vehicle insurance data.csv', sep = ";")
 df <- df %>% mutate(Year_Renewal = gsub("^.*/", "", Date_last_renewal)) %>% group_by(Year_Renewal) %>% group_nest() 
 df <- df %>% add_column(distinct_ID = c(n_distinct(df$data[[1]][1]), n_distinct(df$data[[2]][1]), n_distinct(df$data[[3]][1]), n_distinct(df$data[[4]][1])))
@@ -33,7 +40,7 @@ na_count <-sapply(df4, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
 
 #impute missing Value getting rid of the NA values through random forest 
-library(mice)
+
 df4$Type_fuel <- as.factor(df4$Type_fuel)
 md.pattern(df4)
 imputedData <- mice(df4, method = "rf", m = 1, maxit = 5)
@@ -46,7 +53,7 @@ densityplot(imputedData)
 
 stripplot(imputedData, "Type_fuel", pch = 20, cex = 1.2)
 stripplot(imputedData, "Length", pch = 20, cex = 1.2)
-
+db_final<-complet
 
 # Utilisation de xyplot pour visualiser les imputations
 
@@ -83,7 +90,7 @@ db_final <- db_final %>%
   mutate(Second_driver= case_when(
     Second_driver == 0 ~ "no",
     Second_driver == 1 ~ "yes",
-    TRUE ~ as.character(Area)  # Pour gérer les éventuels cas non couverts
+    TRUE ~ as.character(Second_driver)  # Pour gérer les éventuels cas non couverts
   ))
 
 
@@ -99,7 +106,7 @@ db_final$age <- case_when(db_final$age>15 & db_final$age<=25 ~"15-25",
                           db_final$age>65 & db_final$age<=75~"65-75",
                           db_final$age>75 & db_final$age<=80~"75-85",
                           db_final$age>80 ~"80+")
-
+db_final$age<-as.factor(db_final$age)
 # to get licence age, added +1, because new drivers would have value of 0 
 db_final$Licence_time<- 2018- as.numeric(db_final$Licence_year)+ 1 
 
@@ -116,5 +123,25 @@ db_final <- db_final %>%
   mutate(Payment= case_when(
     Payment == 0 ~ "annual",
     Payment == 1 ~ "semester",
-    TRUE ~ as.character(Area)  # Pour g?rer les ?ventuels cas non couverts
+    TRUE ~ as.character(Area)  # Pour gérer les ?ventuels cas non couverts
   ))
+
+
+
+
+db_final$Lapse <- as.factor(db_final$Lapse)
+db_final$Seniority <- as.factor(db_final$Seniority)
+db_final$Policies_in_force<- as.factor(db_final$Policies_in_force)
+db_final$N_doors<- as.factor(db_final$N_doors)
+db_final$Power<- as.factor(db_final$Power)
+db_final$Year_matriculation<- as.factor(db_final$Year_matriculation)
+db_final$Start_year<- as.factor(db_final$Start_year)
+db_final$Licence_time<- as.factor(db_final$Licence_time)
+db_final$N_claims_history<- as.factor(db_final$N_claims_history)
+db_final$N_claims_year<- as.factor(db_final$N_claims_year)
+db_final$Cost_claims_year<- as.factor(db_final$Cost_claims_year)
+db_final$R_Claims_history<- as.factor(db_final$R_Claims_history)
+# Créer un nouveau jeu de données sans la colonne 
+db_final <- subset(db_final, select = -Birth_year)
+db_final <- subset(db_final, select = -Licence_year)
+covrob<-
