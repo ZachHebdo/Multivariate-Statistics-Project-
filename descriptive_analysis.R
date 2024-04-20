@@ -17,11 +17,22 @@ ggplot(db_final, aes(x=N_claims_year))+
 
 
 #premium
-ggplot(db_final, aes(x = Premium)) + 
-  geom_histogram(binwidth = 10, fill = "blue", color = "black") +
-  labs(x = "Nom de Variable", y = "Fréquence") +
-  ggtitle("Titre du Graphique")
-#premium with h= 10 we can see a concentration of obervations around 250 euros 
+# Création des classes de catégories de primes
+db_final$Categorie <- cut(db_final$Premium, breaks = c(seq(0, 600, by = 150), Inf), include.lowest = TRUE)
+
+# Compter le nombre de polices dans chaque catégorie
+nombre_polices <- table(db_final$Categorie)
+
+# Afficher le nombre de polices dans chaque catégorie
+print(nombre_polices)
+
+# Création du graphique
+library(ggplot2)
+ggplot(db_final, aes(x = Categorie)) +
+  geom_bar(fill = "blue", color = "black") +
+  labs(x = "Catégorie de Prime", y = "Nombre de Polices") +
+  ggtitle("Répartition des Polices d'Assurance par Catégorie de Prime")
+
 
 #type de fuel
 
