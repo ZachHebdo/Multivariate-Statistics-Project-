@@ -3,6 +3,7 @@ library(robust)
 library(tidyverse)
 library(dplyr)
 
+db_final$Seniority <- as.numeric(db_final$Seniority)
 data<-db_final
 dfquanti <- data %>% select(where(is.numeric))
 dfquali <- data %>% select(where(is.character) | where(is.factor))
