@@ -95,9 +95,20 @@ db_final <- db_final %>%
 
 
 # to get age instead of birthdate, easier to categorise 
-db_final$age<- 2018- as.numeric(db_final$Birth_year) 
+
 
 # creating classes per age 
+db_final$Premium_class <- case_when(db_final$Premium>0 & db_final$Premium<=150 ~"15-25",
+                          db_final$Premium>150 & db_final$Premium<=300~ "25-35",
+                          db_final$Premium>300 & db_final$Premium<=450~"35-45",
+                          db_final$Premium>450 & db_final$Premium<=600~"45-55",
+                          db_final$Premium>600 ~"600+")
+db_final$Premium<-as.factor(db_final$Premium)
+# to get licence age, added +1, because new drivers would have value of 0 
+
+
+
+db_final$age<- 2018- as.numeric(db_final$Birth_year) 
 db_final$age <- case_when(db_final$age>15 & db_final$age<=25 ~"15-25",
                           db_final$age>25 & db_final$age<=35~ "25-35",
                           db_final$age>35 & db_final$age<=45~"35-45",
@@ -107,9 +118,8 @@ db_final$age <- case_when(db_final$age>15 & db_final$age<=25 ~"15-25",
                           db_final$age>75 & db_final$age<=80~"75-85",
                           db_final$age>80 ~"80+")
 db_final$age<-as.factor(db_final$age)
-# to get licence age, added +1, because new drivers would have value of 0 
-db_final$Licence_time<- 2018- as.numeric(db_final$Licence_year)+ 1 
 
+db_final$Licence_time<- 2018- as.numeric(db_final$Licence_year)+ 1 
 #creation of classes for agence nd brokers instead of 0 and 1 
 db_final <- db_final %>%
   mutate(Distribution_channel= case_when(
@@ -126,6 +136,13 @@ db_final <- db_final %>%
     TRUE ~ as.character(Area)  # Pour gérer les ?ventuels cas non couverts
   ))
 
+db_final$Categorie <- cut(db_final$Premium, breaks = c(seq(0, 600, by = 150), Inf), include.lowest = TRUE)
+
+# Compter le nombre de polices dans chaque catégorie
+nombre_polices <- table(db_final$Categorie)
+
+# Afficher le nombre de polices dans chaque catégorie
+print(nombre_polices)
 
 
 
@@ -134,14 +151,13 @@ db_final$Seniority <- as.factor(db_final$Seniority)
 db_final$Policies_in_force<- as.factor(db_final$Policies_in_force)
 db_final$N_doors<- as.factor(db_final$N_doors)
 db_final$Power<- as.factor(db_final$Power)
-db_final$Year_matriculation<- as.factor(db_final$Year_matriculation)
+db_final$Year_matriculation<- as.numeric(db_final$Year_matriculation)
 db_final$Start_year<- as.factor(db_final$Start_year)
 db_final$Licence_time<- as.factor(db_final$Licence_time)
 db_final$N_claims_history<- as.factor(db_final$N_claims_history)
 db_final$N_claims_year<- as.factor(db_final$N_claims_year)
 db_final$Cost_claims_year<- as.factor(db_final$Cost_claims_year)
 db_final$R_Claims_history<- as.factor(db_final$R_Claims_history)
-# Créer un nouveau jeu de données sans la colonne 
+
 db_final <- subset(db_final, select = -Birth_year)
 db_final <- subset(db_final, select = -Licence_year)
-covrob<-
