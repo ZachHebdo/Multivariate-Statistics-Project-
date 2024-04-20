@@ -144,4 +144,3 @@ db_final$R_Claims_history<- as.factor(db_final$R_Claims_history)
 # Créer un nouveau jeu de données sans la colonne 
 db_final <- subset(db_final, select = -Birth_year)
 db_final <- subset(db_final, select = -Licence_year)
-covrob<-
