@@ -15,7 +15,7 @@ Motor_vehicle_insurance_data <- read_delim("Motor vehicle insurance data.csv",
                                            delim = ";", escape_double = FALSE, trim_ws = TRUE)
 View(Motor_vehicle_insurance_data)
 df<-Motor_vehicle_insurance_data
-df <- read.csv('Motor vehicle insurance data.csv', sep = ";") #c'est la même chose que ligne 12 non?
+
 df <- df %>% mutate(Year_Renewal = gsub("^.*/", "", Date_last_renewal)) %>% group_by(Year_Renewal) %>% group_nest() 
 df <- df %>% add_column(distinct_ID = c(n_distinct(df$data[[1]][1]), n_distinct(df$data[[2]][1]), n_distinct(df$data[[3]][1]), n_distinct(df$data[[4]][1])))
 df
@@ -35,7 +35,6 @@ df4 <- df$data[[4]] %>% mutate(Start_year = as.integer(gsub("^.*/", "", Date_sta
 
 
 glimpse(df4)
-
 df4$Distribution_channel <- ifelse(df4$Distribution_channel == "00/01/1900", "0", df4$Distribution_channel) 
 
 na_count <-sapply(df4, function(y) sum(length(which(is.na(y)))))
@@ -49,9 +48,7 @@ imputedData <- mice(df4, method = "rf", m = 1, maxit = 5)
 complet<-complete(imputedData)
 md.pattern(complet)
 
-stripplot(complet, pch = 1, cex = 1.2)
 densityplot(imputedData)
-
 
 stripplot(imputedData, "Type_fuel", pch = 20, cex = 1.2)
 stripplot(imputedData, "Length", pch = 20, cex = 1.2)
@@ -59,12 +56,9 @@ db_final<-complet
 
 # Utilisation de xyplot pour visualiser les imputations
 
-write.csv(complet, "C:/Users/jeand/Desktop/travail perso unif/cours maths et eco/db_final.csv", row.names = FALSE)
-library(readr)
-db_final <- read_csv("C:/Users/jeand/Desktop/dataset multivarie/db_final.csv")
+write.csv(complet, "db_final.csv", row.names = FALSE)
+db_final <- read_csv("db_final.csv")
 View(db_final)
-db_final = read_csv("db_final.csv")
-
 
 # this part is to change the columns that have numbers while they are categorical
 # into purely categorical columns which will make it easier to run categorization
@@ -95,9 +89,7 @@ db_final <- db_final %>%
     TRUE ~ as.character(Second_driver)  # Pour gérer les éventuels cas non couverts
   ))
 
-
 # to get age instead of birthdate, easier to categorise 
-
 
 # creating classes per age 
 db_final$Premium_class <- case_when(db_final$Premium>0 & db_final$Premium<=150 ~"15-25",
@@ -107,8 +99,6 @@ db_final$Premium_class <- case_when(db_final$Premium>0 & db_final$Premium<=150 ~
                           db_final$Premium>600 ~"600+")
 db_final$Premium<-as.factor(db_final$Premium)
 # to get licence age, added +1, because new drivers would have value of 0 
-
-
 
 db_final$age<- 2018- as.numeric(db_final$Birth_year) 
 db_final$age <- case_when(db_final$age>15 & db_final$age<=25 ~"15-25",
@@ -145,8 +135,6 @@ nombre_polices <- table(db_final$Categorie)
 
 # Afficher le nombre de polices dans chaque catégorie
 print(nombre_polices)
-
-
 
 db_final$Lapse <- as.factor(db_final$Lapse)
 db_final$Seniority <- as.factor(db_final$Seniority)
