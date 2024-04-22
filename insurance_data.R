@@ -3,17 +3,13 @@
 #install.packages("tidyverse")
 #install.packages("dplyr")
 #install.packages("readr")
+#install.packages("openxlsx")
 
-#library(openxlsx)
+library(openxlsx)
 library(mice)
 library(tidyverse)
 library(dplyr)
-
 library(readr)
-db_final <- read_csv("db_final.csv")
-View(db_final)
-
-
 
 Motor_vehicle_insurance_data <- read_delim("Motor vehicle insurance data.csv", 
                                            delim = ";", escape_double = FALSE, trim_ws = TRUE)
@@ -167,3 +163,7 @@ db_final$R_Claims_history<- as.factor(db_final$R_Claims_history)
 
 db_final <- subset(db_final, select = -Birth_year)
 db_final <- subset(db_final, select = -Licence_year)
+
+#final dataset
+db_final <- read_csv("db_final.csv")
+View(db_final)
