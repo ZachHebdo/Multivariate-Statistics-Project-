@@ -1,0 +1,5 @@
+df_mca<-dummy(dfquali,int=TRUE)
+row_profiles=df_mca/rowSums(df_mca)
+column_profiles=t(t(df_mca)/colSums(df_mca))
+mca=CA(data_mca)
+summary(mca)
