@@ -62,11 +62,10 @@ abline(h=cutoff, col="red")
 #identify(distrob, labels=row.names(data), cex=1.5)
 New_db <- cbind(dfquanti, dfquali)
 rejected <- New_db %>% filter(distrob >cutoff) %>% nrow()
-New_db <- New_db %>% filter(distrob <=cutoff) %>% select(-distrob)
-dfquanti <- New_db %>% select(where(is.numeric))
-dfquali <- New_db %>% select(where(is.character) | where(is.factor))
+New_db <- New_db %>% filter(distrob <=cutoff) 
 
-
+dfquanti_rob <- New_db %>% select(where(is.numeric))
+dfquali_rob <- New_db %>% select(where(is.character) | where(is.factor))
 
 
 
