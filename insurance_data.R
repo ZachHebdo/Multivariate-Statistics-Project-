@@ -1,3 +1,9 @@
+###INSTALLATION PACKAGES ; remove # if needed
+#install.packages("mice")
+#install.packages("tidyverse")
+#install.packages("dplyr")
+#install.packages("readr")
+
 #library(openxlsx)
 library(mice)
 library(tidyverse)
@@ -9,11 +15,11 @@ View(db_final)
 
 
 
-Motor_vehicle_insurance_data <- read_delim("Desktop/travail perso unif/cours maths et eco /multivariee/Motor vehicle insurance data.csv", 
+Motor_vehicle_insurance_data <- read_delim("Motor vehicle insurance data.csv", 
                                            delim = ";", escape_double = FALSE, trim_ws = TRUE)
 View(Motor_vehicle_insurance_data)
 df<-Motor_vehicle_insurance_data
-df <- read.csv('Motor vehicle insurance data.csv', sep = ";")
+df <- read.csv('Motor vehicle insurance data.csv', sep = ";") #c'est la même chose que ligne 12 non?
 df <- df %>% mutate(Year_Renewal = gsub("^.*/", "", Date_last_renewal)) %>% group_by(Year_Renewal) %>% group_nest() 
 df <- df %>% add_column(distinct_ID = c(n_distinct(df$data[[1]][1]), n_distinct(df$data[[2]][1]), n_distinct(df$data[[3]][1]), n_distinct(df$data[[4]][1])))
 df
