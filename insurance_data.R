@@ -90,28 +90,49 @@ db_final <- db_final %>%
   ))
 
 # to get age instead of birthdate, easier to categorise 
-
+db_final$Premium<-as.numeric(db_final$Premium)
 # creating classes per age 
-db_final$Premium_class <- case_when(db_final$Premium>0 & db_final$Premium<=150 ~"15-25",
-                          db_final$Premium>150 & db_final$Premium<=300~ "25-35",
-                          db_final$Premium>300 & db_final$Premium<=450~"35-45",
-                          db_final$Premium>450 & db_final$Premium<=600~"45-55",
+db_final$Premium_class <- case_when(db_final$Premium>0 & db_final$Premium<=150 ~"0-150",
+                          db_final$Premium>150 & db_final$Premium<=300~ "150-300",
+                          db_final$Premium>300 & db_final$Premium<=450~"300-450",
+                          db_final$Premium>450 & db_final$Premium<=600~"450-600",
                           db_final$Premium>600 ~"600+")
 db_final$Premium<-as.factor(db_final$Premium)
 # to get licence age, added +1, because new drivers would have value of 0 
 
 db_final$age<- 2018- as.numeric(db_final$Birth_year) 
-db_final$age <- case_when(db_final$age>18 & db_final$age<=30 ~"young driver",
-                          db_final$age>30 & db_final$age<=70~ "experient driver",
-                          db_final$age>70 ~"senior driver",
-                          db_final$age>45 & db_final$age<=55~"45-55",
-                          db_final$age>55 & db_final$age<=65~"55-65",
-                          db_final$age>65 & db_final$age<=75~"65-75",
-                          db_final$age>75 & db_final$age<=80~"75-85",
-                          db_final$age>80 ~"80+")
+db_final$age <- case_when(db_final$age>15 & db_final$age<=30 ~"young adult",
+                          db_final$age>30 & db_final$age<=50 ~ "adult",
+                          db_final$age>50 & db_final$age<=70 ~ "senior",
+                          db_final$age>70 ~"70+",
+                          )
 db_final$age<-as.factor(db_final$age)
 
 db_final$Licence_time<- 2018- as.numeric(db_final$Licence_year)+ 1 
+db_final$Licence_time <- case_when(db_final$Licence_time>1 & db_final$Licence_time<=10 ~"young driver",
+                                   db_final$Licence_time>10 & db_final$Licence_time<=35 ~ "experienced driver",
+                                   db_final$Licence_time>35 ~"senior driver",
+)
+db_final$age<-as.factor(db_final$age)
+
+db_final <- db_final %>%
+  mutate(Policies_in_force_category = ifelse(Policies_in_force > 6, "6+", as.character(Policies_in_force)))
+
+
+
+db_final$age<-as.factor(db_final$age)
+
+
+db_final <- db_final %>%
+  mutate(Seniority = ifelse(as.numeric(Seniority) > 1, "1+", as.character(Seniority)))
+
+
+db_final <- db_final %>%
+  mutate(Lapse = ifelse(as.numeric(Lapse) > 1, "1+", as.character(Lapse)))
+
+
+db_final$Seniority<-as.factor(db_final$Seniority)
+
 #creation of classes for agence nd brokers instead of 0 and 1 
 db_final <- db_final %>%
   mutate(Distribution_channel= case_when(
@@ -140,19 +161,19 @@ nombre_polices <- table(db_final$Categorie)
 # Afficher le nombre de polices dans chaque catégorie
 print(nombre_polices)
 
-<<<<<<< HEAD
+
 
 
 db_sinistralité$Lapse <- as.factor(db_sinistralité$Lapse)
 db_sinistralité$Seniority <- as.factor(db_sinistralité$Seniority)
 db_sinistralité$Policies_in_force<- as.factor(db_sinistralité$Policies_in_force)
 db_sinistralité$N_doors<- as.factor(db_sinistralité$N_doors)
-=======
+
 db_final$Lapse <- as.factor(db_final$Lapse)
 db_final$Seniority <- as.factor(db_final$Seniority)
 db_final$Policies_in_force<- as.factor(db_final$Policies_in_force)
 db_final$N_doors<- as.factor(db_final$N_doors)
->>>>>>> 0419add4f4c6c84a5f32244d80d32f07b9ed8261
+
 db_final$Power<- as.factor(db_final$Power)
 db_final$Year_matriculation<- as.numeric(db_final$Year_matriculation)
 db_final$Start_year<- as.factor(db_final$Start_year)
@@ -162,20 +183,19 @@ db_sinistralité$N_claims_year<- as.factor(db_sinistralité$N_claims_year)
 db_sinistralité$Cost_claims_year<- as.numeric(db_sinistralité$Cost_claims_year)
 db_final$R_Claims_history<- as.factor(db_final$R_Claims_history)
 
-<<<<<<< HEAD
+
 db_sinistralité <- subset(db_sinistralité, select = -Birth_year)
 db_sinistralité <- subset(db_sinistralité, select = -Licence_year)
 db_sinistralité <- subset(db_sinistralité, select = -Start_year)
 db_sinistralité <- subset(db_sinistralité, select = -Year_matriculation)
 
 count <- db_sinistralité %>%
-  count(Policies_in_force)
+  count(Seniority)
 
-=======
 db_final <- subset(db_final, select = -Birth_year)
 db_final <- subset(db_final, select = -Licence_year)
 
 #final dataset
 db_final <- read_csv("db_final.csv")
 View(db_final)
->>>>>>> 0419add4f4c6c84a5f32244d80d32f07b9ed8261
+
