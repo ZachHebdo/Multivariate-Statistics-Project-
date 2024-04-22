@@ -1,19 +1,21 @@
-#library(openxlsx)
+###INSTALLATION PACKAGES ; remove # if needed
+#install.packages("mice")
+#install.packages("tidyverse")
+#install.packages("dplyr")
+#install.packages("readr")
+#install.packages("openxlsx")
+
+library(openxlsx)
 library(mice)
 library(tidyverse)
 library(dplyr)
-
 library(readr)
-db_final <- read_csv("db_final.csv")
-View(db_final)
 
-
-
-Motor_vehicle_insurance_data <- read_delim("Desktop/travail perso unif/cours maths et eco /multivariee/Motor vehicle insurance data.csv", 
+Motor_vehicle_insurance_data <- read_delim("Motor vehicle insurance data.csv", 
                                            delim = ";", escape_double = FALSE, trim_ws = TRUE)
 View(Motor_vehicle_insurance_data)
 df<-Motor_vehicle_insurance_data
-df <- read.csv('Motor vehicle insurance data.csv', sep = ";")
+
 df <- df %>% mutate(Year_Renewal = gsub("^.*/", "", Date_last_renewal)) %>% group_by(Year_Renewal) %>% group_nest() 
 df <- df %>% add_column(distinct_ID = c(n_distinct(df$data[[1]][1]), n_distinct(df$data[[2]][1]), n_distinct(df$data[[3]][1]), n_distinct(df$data[[4]][1])))
 df
@@ -33,7 +35,6 @@ df4 <- df$data[[4]] %>% mutate(Start_year = as.integer(gsub("^.*/", "", Date_sta
 
 
 glimpse(df4)
-
 df4$Distribution_channel <- ifelse(df4$Distribution_channel == "00/01/1900", "0", df4$Distribution_channel) 
 
 na_count <-sapply(df4, function(y) sum(length(which(is.na(y)))))
@@ -47,9 +48,7 @@ imputedData <- mice(df4, method = "rf", m = 1, maxit = 5)
 complet<-complete(imputedData)
 md.pattern(complet)
 
-stripplot(complet, pch = 1, cex = 1.2)
 densityplot(imputedData)
-
 
 stripplot(imputedData, "Type_fuel", pch = 20, cex = 1.2)
 stripplot(imputedData, "Length", pch = 20, cex = 1.2)
@@ -57,12 +56,9 @@ db_final<-complet
 
 # Utilisation de xyplot pour visualiser les imputations
 
-write.csv(complet, "C:/Users/jeand/Desktop/travail perso unif/cours maths et eco/db_final.csv", row.names = FALSE)
-library(readr)
-db_final <- read_csv("C:/Users/jeand/Desktop/dataset multivarie/db_final.csv")
+write.csv(complet, "db_final.csv", row.names = FALSE)
+db_final <- read_csv("db_final.csv")
 View(db_final)
-db_final = read_csv("db_final.csv")
-
 
 # this part is to change the columns that have numbers while they are categorical
 # into purely categorical columns which will make it easier to run categorization
@@ -93,9 +89,7 @@ db_final <- db_final %>%
     TRUE ~ as.character(Second_driver)  # Pour gérer les éventuels cas non couverts
   ))
 
-
 # to get age instead of birthdate, easier to categorise 
-
 
 # creating classes per age 
 db_final$Premium_class <- case_when(db_final$Premium>0 & db_final$Premium<=150 ~"15-25",
@@ -105,8 +99,6 @@ db_final$Premium_class <- case_when(db_final$Premium>0 & db_final$Premium<=150 ~
                           db_final$Premium>600 ~"600+")
 db_final$Premium<-as.factor(db_final$Premium)
 # to get licence age, added +1, because new drivers would have value of 0 
-
-
 
 db_final$age<- 2018- as.numeric(db_final$Birth_year) 
 db_final$age <- case_when(db_final$age>18 & db_final$age<=30 ~"young driver",
@@ -148,12 +140,19 @@ nombre_polices <- table(db_final$Categorie)
 # Afficher le nombre de polices dans chaque catégorie
 print(nombre_polices)
 
+<<<<<<< HEAD
 
 
 db_sinistralité$Lapse <- as.factor(db_sinistralité$Lapse)
 db_sinistralité$Seniority <- as.factor(db_sinistralité$Seniority)
 db_sinistralité$Policies_in_force<- as.factor(db_sinistralité$Policies_in_force)
 db_sinistralité$N_doors<- as.factor(db_sinistralité$N_doors)
+=======
+db_final$Lapse <- as.factor(db_final$Lapse)
+db_final$Seniority <- as.factor(db_final$Seniority)
+db_final$Policies_in_force<- as.factor(db_final$Policies_in_force)
+db_final$N_doors<- as.factor(db_final$N_doors)
+>>>>>>> 0419add4f4c6c84a5f32244d80d32f07b9ed8261
 db_final$Power<- as.factor(db_final$Power)
 db_final$Year_matriculation<- as.numeric(db_final$Year_matriculation)
 db_final$Start_year<- as.factor(db_final$Start_year)
@@ -163,6 +162,7 @@ db_sinistralité$N_claims_year<- as.factor(db_sinistralité$N_claims_year)
 db_sinistralité$Cost_claims_year<- as.numeric(db_sinistralité$Cost_claims_year)
 db_final$R_Claims_history<- as.factor(db_final$R_Claims_history)
 
+<<<<<<< HEAD
 db_sinistralité <- subset(db_sinistralité, select = -Birth_year)
 db_sinistralité <- subset(db_sinistralité, select = -Licence_year)
 db_sinistralité <- subset(db_sinistralité, select = -Start_year)
@@ -171,3 +171,11 @@ db_sinistralité <- subset(db_sinistralité, select = -Year_matriculation)
 count <- db_sinistralité %>%
   count(Policies_in_force)
 
+=======
+db_final <- subset(db_final, select = -Birth_year)
+db_final <- subset(db_final, select = -Licence_year)
+
+#final dataset
+db_final <- read_csv("db_final.csv")
+View(db_final)
+>>>>>>> 0419add4f4c6c84a5f32244d80d32f07b9ed8261
