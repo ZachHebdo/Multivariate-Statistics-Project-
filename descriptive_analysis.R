@@ -17,6 +17,15 @@ ggplot(database, aes(x=N_claims_year))+
                      labels = label_number())+
   ggtitle("Proportion of policies by number of claims")
 
+#Number of claims per year
+ggplot(database, aes(x = N_claims_year)) + 
+  geom_bar(fill = "blue") +
+  labs(x = "Number of claims per year", y = "Amount of people") +
+  ggtitle("Histogram of number of claims per year")
+
+hist(database$N_claims_year)
+hist(database$N_claims_history)
+
 #Type risks
 ggplot(database, aes(x = Type_risk)) + 
   geom_bar(fill = "blue") +
