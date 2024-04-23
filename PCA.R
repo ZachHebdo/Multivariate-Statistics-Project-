@@ -70,7 +70,14 @@ plot(PCA_robust$values, type='l')
 
 inertie_perc_robuste=100*PCA_robust$values/sum(PCA_robust$values)
 cumsum(inertie_perc_robuste)
+plot(cumsum(inertie_perc_robuste), type='l')
 
-### IDEA: Keep only three principal components, to favour interpretability of the dataset. 
+### To discuss: Keep only three principal components, to favour interpretability of the dataset.  
 
+### USING MASS and princomp. Virtually no difference. 
+# library(MASS)
+# mcd <- cov.mcd(df_quant)
+# pca_robust = princomp(df_quant, cor = TRUE, covmat = mcd)
+# inertie_perc_robuste2 = 100*pca_robust$sdev^2/sum(pca_robust$sdev^2)
+# cumsum(inertie_perc_robuste2)
 
