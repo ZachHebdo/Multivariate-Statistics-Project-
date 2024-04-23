@@ -129,11 +129,21 @@ db_sinistralité <- db_final %>%filter(N_claims_year > 0)
 count <- db_sinistralité %>%
   count(Seniority)
 
+# Suppose you want to rename "oldName" to "newName"
+names(db_sinistralité)[names(db_sinistralité) == "Distribution_channel"] <- "Broker"
+names(db_sinistralité)[names(db_sinistralité) == "Area"] <- "Urban"
+
+# Convert 'P' to 0 and 'D' to 1
+db_sinistralité$Type_fuel <- ifelse(db_sinistralité$Type_fuel == "P", 0, 1)
+names(db_sinistralité)[names(db_sinistralité) == "Type_fuel"] <- "Diesel"
+
 
 db_sinistralité <- subset(db_sinistralité, select = -Birth_year)
 db_sinistralité <- subset(db_sinistralité, select = -Licence_year)
 db_sinistralité <- subset(db_sinistralité, select = -Start_year)
 db_sinistralité <- subset(db_sinistralité, select = -Year_matriculation)
+db_sinistralité <- subset(db_sinistralité, select = -Categorie)
+db_sinistralité <- subset(db_sinistralité, select = -R_Claims_history)
 
 
 db_sinistralité$Lapse <- as.factor(db_sinistralité$Lapse)
