@@ -15,7 +15,7 @@ library(readr)
 #FIRST PART: Load the raw data, filter the data relative to the most recent year, and input missing values.
 Motor_vehicle_insurance_data <- read_delim("Motor_vehicle_insurance_data.csv", 
                                            delim = ";", escape_double = FALSE, trim_ws = TRUE)
-View(Motor_vehicle_insurance_data)
+#View(Motor_vehicle_insurance_data)
 df<-Motor_vehicle_insurance_data
 
 # FILTER ONLY THE OBSERVATIONS REFERING TO THE LAST YEAR => df4
@@ -110,14 +110,13 @@ db_final <- db_final %>%
 
 # Categorizing Seniority
 db_final <- db_final %>%
-  mutate(Seniority = ifelse(as.numeric(Seniority) > 1, "1+", as.character(Seniority)))
+  mutate(Seniority = ifelse(as.numeric(Seniority) > 1, "0", as.character(Seniority))) 
+names(db_final)[names(db_final) == "Seniority"] <- "newClient"
+db_final$newClient<-as.factor(db_final$newClient)
 
 # Categorizing Lapse
 db_final <- db_final %>%
   mutate(Lapse = ifelse(as.numeric(Lapse) > 1, "1+", as.character(Lapse)))
-
-# Categorizing Seniority
-db_final$Seniority<-as.factor(db_final$Seniority)
 
 # Premium remains quantitative.
 db_final$Premium = as.numeric(db_final$Premium)
@@ -125,9 +124,6 @@ db_final$Premium = as.numeric(db_final$Premium)
 ################################################################################
 # Here we are interested in only the observations which have had at least one claim in the current year.
 db_sinis <- db_final %>%filter(N_claims_year > 0) 
-
-count <- db_sinis %>%
-  count(Seniority)
 
 # Suppose you want to rename "oldName" to "newName"
 names(db_sinis)[names(db_sinis) == "Distribution_channel"] <- "Broker"
@@ -138,6 +134,11 @@ db_sinis$Type_fuel <- ifelse(db_sinis$Type_fuel == "P", 0, 1)
 names(db_sinis)[names(db_sinis) == "Type_fuel"] <- "Diesel"
 
 
+### Convert seniority into 1 or 0, depending on whether it is new or not.
+## db_sinis$Seniority <- ifelse(db_sinis$Seniority == "P", 0, 1)
+## names(db_sinis)[names(db_sinis) == "Type_fuel"] <- "Diesel"
+
+# REMOVING THESE VARIABLES, AS THEY ARE NOT INTERESTING FOR OUR ANALYSIS
 db_sinis <- subset(db_sinis, select = -Birth_year)
 db_sinis <- subset(db_sinis, select = -Licence_year)
 db_sinis <- subset(db_sinis, select = -Start_year)
@@ -145,11 +146,19 @@ db_sinis <- subset(db_sinis, select = -Year_matriculation)
 #db_sinis <- subset(db_sinis, select = -Categorie)
 db_sinis <- subset(db_sinis, select = -R_Claims_history)
 
+db_sinis$Broker <- as.factor(db_sinis$Broker)
 db_sinis$Lapse <- as.factor(db_sinis$Lapse)
-db_sinis$Seniority <- as.factor(db_sinis$Seniority)
+db_sinis$Seniority <- as.factor(db_sinis$newClient)
 db_sinis$Policies_in_force<- as.factor(db_sinis$Policies_in_force)
 db_sinis$N_doors<- as.factor(db_sinis$N_doors)
 
-# Transform seniority into binary variable called NEW CLIENT
+countVar <- function(var) {
+    db_sinis %>% count({{var}})
+}
+
+countVar(newClient)
+
+glimpse(db_sinis)
+
 view(db_sinis)
 write.csv(db_sinis, "preprocessedData.csv", row.names = FALSE)
