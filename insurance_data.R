@@ -116,7 +116,7 @@ db_final <- db_final %>%
 
 
 db_final$Seniority<-as.factor(db_final$Seniority)
-
+db_final$Premium = as.numeric(db_final$Premium)
 #creation of classes for agence nd brokers instead of 0 and 1 
 
 #creation of class for payment 
