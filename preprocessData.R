@@ -112,7 +112,6 @@ db_final <- db_final %>%
 db_final <- db_final %>%
     mutate(Seniority = ifelse(as.numeric(Seniority) > 1, "0", as.character(Seniority))) 
 names(db_final)[names(db_final) == "Seniority"] <- "newClient"
-db_final$newClient<-as.factor(db_final$newClient)
 
 # Categorizing Lapse
 db_final <- db_final %>%
@@ -145,9 +144,10 @@ db_sinis <- subset(db_sinis, select = -Start_year)
 db_sinis <- subset(db_sinis, select = -Year_matriculation)
 db_sinis <- subset(db_sinis, select = -R_Claims_history)
 
+db_final$newClient<-as.factor(db_final$newClient)
 db_sinis$Broker <- as.factor(db_sinis$Broker)
 db_sinis$Lapse <- as.factor(db_sinis$Lapse)
-db_sinis$Seniority <- as.factor(db_sinis$newClient)
+#db_sinis$Seniority <- as.factor(db_sinis$newClient)
 db_sinis$Policies_in_force<- as.factor(db_sinis$Policies_in_force)
 db_sinis$N_doors<- as.factor(db_sinis$N_doors)
 db_sinis$Urban <- as.factor(db_sinis$Urban)
