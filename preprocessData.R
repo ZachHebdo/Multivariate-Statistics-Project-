@@ -98,8 +98,14 @@ db_final <-  db_final %>% mutate(N_claims_history = case_when(
 db_final$N_claims_history <- as.factor(db_final$N_claims_history)
 
 ################################################################################
+
+# db_sinis <- db_final 
+
+#### If we take the entire set of observations, the number of 0s in cost_claims_year is so large, that the robust covariance matrix becomes singular.
+#### We could direct our questions to the group of people who had claims in that year, so that we only look at non-zero, and thus invertible matrices.
+
 # Here we are interested in only the observations which have had at least one claim in the current year.
-db_sinis <- db_final %>%filter(as.numeric(N_claims_year) > 0) 
+#db_sinis <- db_final %>%filter(as.numeric(N_claims_year) > 0) 
 
 # Suppose you want to rename "oldName" to "newName"
 names(db_sinis)[names(db_sinis) == "Distribution_channel"] <- "Broker"
