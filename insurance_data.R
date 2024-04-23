@@ -73,22 +73,6 @@ db_final <- db_final %>%
   ))
 
 
-db_final <- db_final %>%
-  mutate(Area = case_when(
-    Area == 0 ~ "rural",
-    Area == 1 ~ "urban",
-    TRUE ~ as.character(Area)  # Pour gérer les éventuels cas non couverts
-  ))
-
-
-
-db_final <- db_final %>%
-  mutate(Second_driver= case_when(
-    Second_driver == 0 ~ "no",
-    Second_driver == 1 ~ "yes",
-    TRUE ~ as.character(Second_driver)  # Pour gérer les éventuels cas non couverts
-  ))
-
 # to get age instead of birthdate, easier to categorise 
 db_final$Premium<-as.numeric(db_final$Premium)
 # creating classes per age 
@@ -134,54 +118,16 @@ db_final <- db_final %>%
 db_final$Seniority<-as.factor(db_final$Seniority)
 
 #creation of classes for agence nd brokers instead of 0 and 1 
-db_final <- db_final %>%
-  mutate(Distribution_channel= case_when(
-    Distribution_channel == 0 ~ "agency",
-    Distribution_channel == 1 ~ "brokers",
-    TRUE ~ as.character(Distribution_channel)
-  ))
 
 #creation of class for payment 
-db_final <- db_final %>%
-  mutate(Payment= case_when(
-    Payment == 0 ~ "annual",
-    Payment == 1 ~ "semester",
-    TRUE ~ as.character(Area)  # Pour gérer les ?ventuels cas non couverts
-  ))
 
 db_final$Categorie <- cut(db_final$Premium, breaks = c(seq(0, 600, by = 150), Inf), include.lowest = TRUE)
 
 
 db_sinistralité <- db_final %>%filter(N_claims_year > 0) 
-db_histo<- db_final %>%filter(R_Claims_history > 0)
 
-# Compter le nombre de polices dans chaque catégorie
-nombre_polices <- table(db_final$Categorie)
-
-# Afficher le nombre de polices dans chaque catégorie
-print(nombre_polices)
-
-
-
-
-db_sinistralité$Lapse <- as.factor(db_sinistralité$Lapse)
-db_sinistralité$Seniority <- as.factor(db_sinistralité$Seniority)
-db_sinistralité$Policies_in_force<- as.factor(db_sinistralité$Policies_in_force)
-db_sinistralité$N_doors<- as.factor(db_sinistralité$N_doors)
-
-db_final$Lapse <- as.factor(db_final$Lapse)
-db_final$Seniority <- as.factor(db_final$Seniority)
-db_final$Policies_in_force<- as.factor(db_final$Policies_in_force)
-db_final$N_doors<- as.factor(db_final$N_doors)
-
-db_final$Power<- as.factor(db_final$Power)
-db_final$Year_matriculation<- as.numeric(db_final$Year_matriculation)
-db_final$Start_year<- as.factor(db_final$Start_year)
-db_sinistralité $Licence_time<- as.factor(db_sinistralité$Licence_time)
-db_sinistralité$N_claims_history<- as.factor(db_sinistralité$N_claims_history)
-db_sinistralité$N_claims_year<- as.factor(db_sinistralité$N_claims_year)
-db_sinistralité$Cost_claims_year<- as.numeric(db_sinistralité$Cost_claims_year)
-db_final$R_Claims_history<- as.factor(db_final$R_Claims_history)
+count <- db_sinistralité %>%
+  count(Seniority)
 
 
 db_sinistralité <- subset(db_sinistralité, select = -Birth_year)
@@ -189,13 +135,15 @@ db_sinistralité <- subset(db_sinistralité, select = -Licence_year)
 db_sinistralité <- subset(db_sinistralité, select = -Start_year)
 db_sinistralité <- subset(db_sinistralité, select = -Year_matriculation)
 
-count <- db_sinistralité %>%
-  count(Seniority)
 
-db_final <- subset(db_final, select = -Birth_year)
-db_final <- subset(db_final, select = -Licence_year)
+db_sinistralité$Lapse <- as.factor(db_sinistralité$Lapse)
+db_sinistralité$Seniority <- as.factor(db_sinistralité$Seniority)
+db_sinistralité$Policies_in_force<- as.factor(db_sinistralité$Policies_in_force)
+db_sinistralité$N_doors<- as.factor(db_sinistralité$N_doors)
 
-#final dataset
-db_final <- read_csv("db_final.csv")
-View(db_final)
+
+
+
+
+
 
