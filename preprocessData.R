@@ -158,14 +158,15 @@ db_sinis$Second_driver <- as.factor(db_sinis$Second_driver)
 #as.factor(db_sinis$Cylinder_capacity)
 #as.factor(db_sinis$Power)
 
+db_quant <- db_sinis %>% select(where(is.numeric))
+db_qual <- db_sinis %>% select(where(~ !is.numeric(.)))
+
 countVar <- function(var) {
     db_sinis %>% count({{var}})
 }
 
-db_quant <- db_sinis %>% select(where(is.numeric))
-db_qual <- db_sinis %>% select(where(~ !is.numeric(.)))
+lapply(db_qual, countVar)
 
-countVar(newClient)
 
 #glimpse(db_quant)
 #glimpse(db_qual)
