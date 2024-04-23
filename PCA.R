@@ -1,25 +1,37 @@
 #PCA analysis
+library(dplyr)
 
-data = 
+database = open.csv("preprocessedData.csv")
+database$newClient<-as.factor(database$newClient)
+database$Broker <- as.factor(database$Broker)
+database$Lapse <- as.factor(database$Lapse)
+database$Policies_in_force<- as.factor(database$Policies_in_force)
+database$N_doors<- as.factor(database$N_doors)
+database$Urban <- as.factor(database$Urban)
+database$Diesel <- as.factor(database$Diesel)
+database$Payment <- as.factor(database$Payment)
+database$Second_driver <- as.factor(database$Second_driver)
+database$N_claims_year <- as.factor(database$N_claims_year)
 
-quant_var = database[c("Cost_claims_year","Power","Cylinder_capacity", 
-                       "Value_vehicle","Length", "Weight", "Premium",
-                       "N_claims_year", "N_claims_history")]
 
 
+db_quant <- database %>% select(where(is.numeric))
+db_qual <- database %>% select(where(~ !is.numeric(.)))
+
+dbqual
 #descriptive analysis 
-summary(quant_var)
-boxplot(quant_var)
-cov(quant_var)
+summary(db_quant)
+boxplot(db_quant)
+cov(db_quant)
 
 # check if needed to scale 
-apply(quant_var,2,mean) # we have to scale 
+apply(db_quant,2,mean) # we have to scale 
 
 #standardizing it 
-data_st = as.data.frame(scale(quant_var))
+data_st = as.data.frame(scale(db_quant))
 
 #Calculate PCA using corr matrix 
-corr_matrix = cor(quant_var)
+corr_matrix = cor(db_quant)
 print(corr_matrix)
 PCA = eigen(corr_matrix)
 PCA$values 
@@ -44,19 +56,19 @@ cumsum(inertie_perc)
 #plot(cor1, cor2, xlim=c(-1,1), ylim=c(-1,1))
 #abline(h=0, v=0)
 #symbols(0, 0, circles=1, inches=F, add=T)
-#identify(cor1, cor2, labels=colnames(quant_var))
+#identify(cor1, cor2, labels=colnames(db_quant))
 
 
 
 library(robust)
 
 # Apply robust PCA on your dataset
-robust_cov <- covRob(quant_var, corr = TRUE, estim = 'weighted')
+robust_cov <- covRob(db_quant, corr = TRUE, estim = 'weighted')
 PCA_robust <- eigen(robust_cov$cov)
 PCA_robust$vectors
 PCA_robust$values
 
-plot(eigenvalues_robust$values, type='l')
+plot(PCA_robust$values, type='l')
 
 
 inertie_perc_robuste=100*PCA_robust$values/sum(PCA_robust$values)
