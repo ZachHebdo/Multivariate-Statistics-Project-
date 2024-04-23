@@ -80,4 +80,5 @@ plot(cumsum(inertie_perc_robuste), type='l')
 # pca_robust = princomp(df_quant, cor = TRUE, covmat = mcd)
 # inertie_perc_robuste2 = 100*pca_robust$sdev^2/sum(pca_robust$sdev^2)
 # cumsum(inertie_perc_robuste2)
+# detach("package:MASS")
 

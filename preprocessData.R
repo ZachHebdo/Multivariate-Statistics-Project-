@@ -75,7 +75,7 @@ db_final <- db_final %>%
 
 # Categorizing number of policies in force
 db_final <- db_final %>%
-    mutate(Policies_in_force = ifelse(Policies_in_force > 5, "6+", as.character(Policies_in_force)))
+    mutate(Policies_in_force = ifelse(Policies_in_force > 1, "Many", as.character(Policies_in_force)))
 
 # Categorizing Seniority
 db_final <- db_final %>%
@@ -91,7 +91,7 @@ db_final$Premium = as.numeric(db_final$Premium)
 
 db_final <-  db_final %>% mutate(N_claims_history = case_when(
     N_claims_history == 1 ~ "1",
-    N_claims_history > 1 & N_claims_history < 5 ~ "2 - 4",
+    N_claims_history > 1 & N_claims_history < 5 ~ "2,3,4",
     N_claims_history > 4 ~ "5+",
     TRUE ~ as.character(N_claims_history)))  # Pour gérer les éventuels cas non couverts
 
