@@ -11,7 +11,7 @@ library(tidyverse)
 library(dplyr)
 library(readr)
 
-Motor_vehicle_insurance_data <- read_delim("Motor vehicle insurance data.csv", 
+Motor_vehicle_insurance_data <- read_delim("Motor_vehicle_insurance_data.csv", 
                                            delim = ";", escape_double = FALSE, trim_ws = TRUE)
 View(Motor_vehicle_insurance_data)
 df<-Motor_vehicle_insurance_data
