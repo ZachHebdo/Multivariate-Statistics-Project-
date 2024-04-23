@@ -56,9 +56,8 @@ db_final<-complet
 
 # Utilisation de xyplot pour visualiser les imputations
 
-write.csv(complet, "db_final.csv", row.names = FALSE)
-db_final <- read_csv("db_final.csv")
-View(db_final)
+write.csv(complet, "db_traitement.csv", row.names = FALSE)
+
 
 # this part is to change the columns that have numbers while they are categorical
 # into purely categorical columns which will make it easier to run categorization
@@ -154,6 +153,6 @@ db_sinistralité$N_doors<- as.factor(db_sinistralité$N_doors)
 
 
 
-
-
-
+write.csv(db_sinistralité, "db_final.csv", row.names = FALSE)
+database = read_csv("db_final.csv")
+view(database)
