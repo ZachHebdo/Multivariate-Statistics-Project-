@@ -1,10 +1,11 @@
-#analyse descriptive de notre portefeuille 
 library(ggplot2)
 library(scales)
-database = read_csv("db_final.csv")
+library(dplyr)
+database <- read.csv("preprocessedData.csv")
+str(database)
+# 1. Univariate analysis
 
-
-#frequence de sinistre
+#frequency of number of claims/year
 ggplot(database, aes(x=N_claims_year))+
   geom_bar()+
   geom_label(stat='count', 
@@ -16,50 +17,28 @@ ggplot(database, aes(x=N_claims_year))+
                      labels = label_number())+
   ggtitle("Proportion of policies by number of claims")
 
+#Type risks
+ggplot(database, aes(x = Type_risk)) + 
+  geom_bar(fill = "blue") +
+  labs(x = "Type risk", y = "Amount of people") +
+  ggtitle("Histogram of type risk associated with the policy")
 
+#Premium class
+ggplot(database, aes(x = Premium_class)) + 
+  geom_bar(fill = "blue") +
+  labs(x = "Premium class", y = "Amount of people") +
+  ggtitle("Histogram of premium class")
 
-#premium
-# Création des classes de catégories de primes
-database$Categorie <- cut(database$Premium, breaks = c(seq(0, 600, by = 150), Inf), include.lowest = TRUE)
-
-# Compter le nombre de polices dans chaque catégorie
-nombre_polices <- table(database$Categorie)
-
-# Afficher le nombre de polices dans chaque catégorie
-print(nombre_polices)
-
-ggplot(database, aes(x = Categorie)) +
-  geom_bar(fill = "blue", color = "black") +
-  labs(x = "Catégorie de Prime", y = "Nombre de Polices") +
-  ggtitle("Répartition des Polices d'Assurance par Catégorie de Prime")
-
-
-#type de fuel
-
+#type of fuel
 ggplot(database, aes(x = Diesel)) + 
   geom_bar(fill = "blue") +
-  labs(x = "Fuel type", y = "Compte") +
-  ggtitle("Fuel type")
+  labs(x = "Fuel type", y = "Amount of people") +
+  ggtitle("Histogram of fuel type")
 
-
-
-
-ggplot(database, aes(x = N_doors, y = N_claims_year)) + 
-  geom_boxplot() +
-  labs(x = "Nom de Variable Catégorielle", y = "Nom de Variable Numérique") +
-  ggtitle("Relation entre  et ")
-
-ggplot(database, aes(x = N_doors)) + 
-  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
-  labs(x = "Nom de Variable", y = "Fréquence") +
-  ggtitle("claims by n_doors")
-
-
-
-
-# Calculer le tableau de contingence
+#Contingency table (ACM non?)
+table(database$Premium_class, database$age)
 tableau <- table(database$N_doors, database$N_claims_year)
-ggplot(data = database, aes(x = factor(N_doors), fill = factor(N_claims_year))) +
+ggplot(data = database, aes(x = factor(N_doors), fill = factor(N_claims_year)))+
   geom_bar(position = "fill") +
   labs(x = "nb_doors", y = "Proportion", fill = "nb claims") +
   theme_minimal() +
@@ -67,24 +46,17 @@ ggplot(data = database, aes(x = factor(N_doors), fill = factor(N_claims_year))) 
 # Afficher le tableau
 print(tableau)
 
+# 2. Outliers detection
+selected_variables <- database[, c("Cost_claims_year", "Power", 
+                                   "Cylinder_capacity","Value_vehicle",
+                                   "Length","Weight")]
+summary(selected_variables)
 
+boxplot(selected_variables)
 
-  
-dfquanti <- database %>% select(where(is.numeric))
-sumtable <- as.data.frame(c(0,0,0,0,0,0,0))
-row.names(sumtable) <- c('Min', 'Q1', 'M?diane','Moyenne','Q3','Max',"NA's")
-
-for (i in 1:ncol(dfquanti)){
-  x <- dfquanti[,i]
-  nas <- dfquanti %>% filter(is.na(x)) %>% nrow()
-  min <- min(x,na.rm = TRUE)
-  Q1 <- unname(quantile(x,.25,na.rm = TRUE))
-  Median <- unname(quantile(x,.5,na.rm = TRUE))
-  Mean <- unname(colMeans(x,na.rm = TRUE))
-  Q3 <- unname(quantile(x,.75,na.rm = TRUE))
-  max <- max(x,na.rm = TRUE)
-  nas <- dfquanti %>% filter(is.na(x)) %>% nrow()
-  sumtable <- sumtable %>% cbind(c(min,Q1,Median,Mean,Q3,max,nas))
-}
-colnames(sumtable) <- c("0",colnames(dfquanti))
-sumtable <- sumtable %>% select(-"0")
+boxplot(selected_variables$Cost_claims_year) 
+boxplot(selected_variables$Cylinder_capacity)
+boxplot(selected_variables$Value_vehicle)
+boxplot(selected_variables$Length)
+boxplot(selected_variables$Power)
+boxplot(selected_variables$Weight)
