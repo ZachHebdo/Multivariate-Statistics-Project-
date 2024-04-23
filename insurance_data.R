@@ -11,11 +11,14 @@ library(tidyverse)
 library(dplyr)
 library(readr)
 
+################################################################################
+#FIRST PART: Load the raw data, filter the data relative to the most recent year, and input missing values.
 Motor_vehicle_insurance_data <- read_delim("Motor_vehicle_insurance_data.csv", 
                                            delim = ";", escape_double = FALSE, trim_ws = TRUE)
 View(Motor_vehicle_insurance_data)
 df<-Motor_vehicle_insurance_data
 
+# FILTER ONLY THE OBSERVATIONS REFERING TO THE LAST YEAR => df4
 df <- df %>% mutate(Year_Renewal = gsub("^.*/", "", Date_last_renewal)) %>% group_by(Year_Renewal) %>% group_nest() 
 df <- df %>% add_column(distinct_ID = c(n_distinct(df$data[[1]][1]), n_distinct(df$data[[2]][1]), n_distinct(df$data[[3]][1]), n_distinct(df$data[[4]][1])))
 df
@@ -35,30 +38,32 @@ df4 <- df$data[[4]] %>% mutate(Start_year = as.integer(gsub("^.*/", "", Date_sta
 
 
 glimpse(df4)
+
+# Correct a mistake in the database, where 0s were converted into "00/01/1900", due to marking the variable column for a subset of a database as type date.
 df4$Distribution_channel <- ifelse(df4$Distribution_channel == "00/01/1900", "0", df4$Distribution_channel) 
 
 na_count <-sapply(df4, function(y) sum(length(which(is.na(y)))))
 na_count <- data.frame(na_count)
 
-#impute missing Value getting rid of the NA values through random forest 
-
+#Using MICE package to impute missing values, via random forest (rf) algorithms. 
 df4$Type_fuel <- as.factor(df4$Type_fuel)
 md.pattern(df4)
 imputedData <- mice(df4, method = "rf", m = 1, maxit = 5)
 complet<-complete(imputedData)
 md.pattern(complet)
 
+# Evaluate the quality of the inputations.
 densityplot(imputedData)
 
 stripplot(imputedData, "Type_fuel", pch = 20, cex = 1.2)
 stripplot(imputedData, "Length", pch = 20, cex = 1.2)
 db_final<-complet
 
-# Utilisation de xyplot pour visualiser les imputations
 
-write.csv(complet, "db_traitement.csv", row.names = FALSE)
+# write.csv(complet, "db_traitement.csv", row.names = FALSE)
 
-
+################################################################################
+# SECOND PART: Preparing the data for analysis.
 # this part is to change the columns that have numbers while they are categorical
 # into purely categorical columns which will make it easier to run categorization
 
