@@ -69,3 +69,10 @@ boxplot(selected_variables$Value_vehicle)
 boxplot(selected_variables$Length)
 boxplot(selected_variables$Power)
 boxplot(selected_variables$Weight)
+
+#3sigma-rule
+b1=median(database$Value_vehicle)-3*mad(database$Value_vehicle)
+b2=median(database$Value_vehicle)+3*mad(database$Value_vehicle)
+plot(database$Value_vehicle, ylab='Value_vehicle')
+abline(h=b2, col='red')
+identify(database$Value_vehicle, labels=row.names(database), cex=1.5)
