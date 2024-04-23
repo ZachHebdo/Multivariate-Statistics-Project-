@@ -8,22 +8,33 @@ summary(quant_var)
 boxplot(quant_var)
 cov(quant_var)
 
-apply(quant_var,2,mean)
+# check if needed to scale 
+apply(quant_var,2,mean) # we have to scale 
 
+#standardizing it 
 data_st = as.data.frame(scale(quant_var))
-apply(data_st, 2, mean)
-apply(data_st, 2, var)
+
+corr_matrix = cor(quant_var)
+print(corr_matrix)
+PCA = eigen(corr_matrix)
+PCA$values 
+PCA$vectors
+
+plot(PCA$values, type='line')
+
 
 pca = princomp(data_st, corr=TRUE)
 attributes(pca)
 
-eigenvalues=pca$sdev^2
-inertie_perc=100*eigenvalues/sum(eigenvalues)
+
+
+inertie_perc=100*PCA$values/sum(PCA$values)
 cumsum(inertie_perc)
 
-plot(eigenvalues, type='line')
 
-eigenvectors=pca$loadings
+
+
+
 
 cor1=pca$sdev[1]*eigenvectors[,1]
 cor2=pca$sdev[2]*eigenvectors[,2]
@@ -36,17 +47,22 @@ identify(cor1, cor2, labels=colnames(quant_var))
 
 
 
-library(robustbase)
+library(robust)
 
 # Apply robust PCA on your dataset
-robust_cov <- covMcd(quant_var)
-eigenvalues_robust <- eigen(robust_cov$cov)
-loadings <- eigen$vectors
-scores <- scale(quant_var, center = robust_cov$center, scale = FALSE) %*% loadings
+robust_cov <- covRob(quant_var, corr = TRUE, estim = 'mcd')
+PCA_robust <- eigen(robust_cov$cov)
+PCA_robust$vectors
+PCA_robust$values
 
-# The eigenvalues and vectors are used to find the principal components
-pca_result <- list(
-  eigenvalues = eigenvalues$values,
-  eigenvectors = eigenvalues$vectors,
-  scores = scores
-)
+plot(eigenvalues_robust$values, type='l')
+
+
+inertie_perc_robuste=100*PCA_robust$values/sum(PCA_robust$values)
+cumsum(inertie_perc_robuste)
+
+
+
+
+
+
