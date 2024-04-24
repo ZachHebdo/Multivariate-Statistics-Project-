@@ -100,7 +100,10 @@ plot_biplot("PC1", "PC2", scores, loadings)
 plot_biplot("PC1", "PC3", scores, loadings)
 plot_biplot("PC2", "PC3", scores, loadings)
 
-
+#plotting the contributions to each dimension of each variable 
+plot_pca_contribution(loadings, 1)
+plot_pca_contribution(loadings, 2)
+plot_pca_contribution(loadings, 3)
 
 ##            ROBUST PCA 
 ##
@@ -144,10 +147,17 @@ loadings_robust$variable = colnames(df_quant)
 colnames(loadings_robust) = paste("PC_robust", 1:7, sep = "")
 colnames(loadings_robust)[8] = "Label"
 
-
+#plotting the biplot of the robust PCA
 plot_biplot("PC_robust1", "PC_robust2", scores_robust, loadings_robust)
 plot_biplot("PC_robust1", "PC_robust3", scores_robust, loadings_robust)
 plot_biplot("PC_robust2", "PC_robust3", scores_robust, loadings_robust)
+
+#plotting the contributions to each dimension of each variable 
+plot_pca_contribution(loadings_robust, 1)
+plot_pca_contribution(loadings_robust, 2)
+plot_pca_contribution(loadings_robust, 3)
+
+
 
 
 #function to visualize the correlation circle 
@@ -197,4 +207,29 @@ plot_biplot <- function(comp1, comp2, df_scores, df_loadings, scale_factor = 12)
                     color = "black", size = 3)
 }
 
+#function to create graphs to see contribution to each component 
+plot_pca_contribution <- function(loadings, dimension, palette = "Blues") {
+  # Calculate contributions for the specified dimension
+  contributions <- (loadings[, dimension]^2 / sum(loadings[, dimension]^2)) * 100
+  
+  # Create a data frame for the contributions
+  df_contribution <- data.frame(
+    Variables = loadings$Label,
+    Contributions = contributions
+  )
+  
+  # Order the data frame by contributions in descending order to get the descending order bar 
+  df_contribution <- df_contribution[order(-df_contribution$Contributions),]
+  
+  # Create the plot
+  p <- ggplot(df_contribution, aes(x = reorder(Variables, -Contributions), y = Contributions, fill = Variables)) +
+    geom_bar(stat = "identity") +
+    theme_minimal() +
+    labs(title = paste("Contribution of columns to Dim-", dimension, sep=""),
+         y = "Contributions (%)", x ="Variables") +
+    geom_hline(yintercept = mean(df_contribution$Contributions), linetype="dashed", color = "red") +
+    scale_fill_brewer(palette = palette, direction = -1) # Optional color scale
+  
+  return(p)
+}
 
