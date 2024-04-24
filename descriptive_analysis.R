@@ -22,6 +22,7 @@ database_qual <- database %>% select(where(~ !is.numeric(.)))
 
 # 1. Univariate analysis
 
+#comparison of different estimators of mean 
 mean(database$Premium)
 median(database$Premium)
 mean(database$Premium,trim=0.1)
@@ -44,24 +45,44 @@ ggplot(database, aes(x = Type_risk)) +
   labs(x = "Type risk", y = "Amount of people") +
   ggtitle("Bar plot of type risk associated with the policy")
 
+# Pie chart function
+plot_pie_chart <- function(data, variable_name, title = NULL) {
+  if (!(variable_name %in% colnames(data))) {
+    stop("The specified variable is not in the dataframe.")
+  }
+  var_count <- as.data.frame(table(data[[variable_name]]))
+  colnames(var_count) <- c("category", "count")
+  var_count$fraction = var_count$count / sum(var_count$count)
+  var_count$ymax = cumsum(var_count$fraction)
+  var_count$ymin = c(0, head(var_count$ymax, -1))
+  ggplot(var_count, aes(ymin = ymin, ymax = ymax, xmax = 4, xmin = 3, fill = category)) +
+    geom_rect() +
+    coord_polar(theta = "y") +
+    theme_void() +
+    ggtitle(title) +
+    labs(fill = variable_name)
+}
+plot_pie_chart(database, "Type_risk", "Pie chart for Type Risk")
+
 #frequency of premium
 ggplot(database, aes(x = Premium)) +
   geom_histogram(binwidth = 20, fill = "blue", color = "black") +  
   labs(x = "Premium", y = "Frequency") +  
   ggtitle("Histogram of Premium")
 
-#type of fuel
+# Type of fuel
 ggplot(database, aes(x = Diesel)) + 
   geom_bar(fill = "blue") +
   labs(x = "Fuel type", y = "Amount of people") +
   ggtitle("Bar plot of fuel type")
 
+# Relation between the type of fuel and premium
 ggplot(database, aes(x = Diesel, y = Premium)) + 
   geom_boxplot() +
   labs(x = "Type of fuel", y = "Premium") +
-  ggtitle("Relation between the type of fuel and premium")
+  ggtitle("Box Plot of Premium by the type of fuel")
 
-#type of client
+# Type of client
 ggplot(database, aes(x = newClient)) + 
   geom_bar(fill = "blue") +
   labs(x = "type of client", y = "Amount of people") +
@@ -104,6 +125,12 @@ ggplot(database, aes(x=N_claims_year))+
              aes(label =  percent(prop.table(after_stat(count)), 
                                   accuracy = 0.01)),vjust = 0.5)+
   ggtitle("Proportion of policies by number of claims")
+
+# Box plot
+ggplot(database, aes(x = Policies_in_force, y = Premium)) +
+  geom_boxplot(fill = "grey", color = "black") +
+  labs(x = "Total number of policies", y = "Premium") +
+  ggtitle("Box Plot of Premium by Total number of policies")
 
 # Contigency table
 tableau <- table(database$Type_risk, database$N_claims_year)
