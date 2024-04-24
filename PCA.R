@@ -59,7 +59,9 @@ eigenvectors=pca$loadings
 eigenvalues=pca$sdev^2.
 pca$scores[,1:2]
 #have to do this to have same direction of graph 
-PCA$vectors = -1 * PCA$vectors
+PCA$vectors[,3] = -1 * PCA$vectors[,3]
+PCA$vectors[,2] = -1 * PCA$vectors[,2]
+PCA$vectors[,1] = -1 * PCA$vectors[,1]
 
 #normal way to calculate scores 
 scores = scale(df_quant) %*% PCA$vectors 
@@ -100,10 +102,11 @@ plot_biplot("PC2", "PC3", scores, loadings)
 
 
 
+##            ROBUST PCA 
+##
 # Apply robust PCA on your dataset (If there are less than 50000 observations and less than 20 variables then the MCD is used.)
 robust_cov =  covRob(df_quant, corr = TRUE, estim = 'weighted')
 PCA_robust = eigen(robust_cov$cov)
-PCA_robust$vectors = -1* PCA_robust$vectors
 PCA_robust$values
 
 #plotting and looks like we should keep around 3 or 4 dimensions 
@@ -118,25 +121,15 @@ cor_rob1 = sqrt(PCA_robust$values[1])*PCA_robust$vectors[,1]
 cor_rob2 = sqrt(PCA_robust$values[2])*PCA_robust$vectors[,2]
 cor_rob3 = sqrt(PCA_robust$values[3])*PCA_robust$vectors[,3]
 
-#plotting circle again 
-plot(cor_rob1, cor_rob2, xlim=c(-1,1), ylim=c(-1,1), xlab="PC1", ylab="PC2")
-abline(h=0, v=0)
-symbols(0, 0, circles=1, inches=FALSE, add=TRUE)
-text(cor1, cor2, labels=colnames(df_quant), cex=0.7, offset=0.1)
-
-
-# Plot
+# Plot correlation circle 
 plot_pca_circle(cor_rob1, cor_rob2)
 plot_pca_circle(cor_rob2, cor_rob3)
 plot_pca_circle(cor_rob1, cor_rob3)
 
 #calculating scores 
+PCA_robust$vectors[,2] = -1 * PCA_robust$vectors[,2]
 scores_robust = scale(df_quant) %*% PCA_robust$vectors 
 
-
-#plotting the biplot using autoplot 
-autoplot(pca, data= df, colour="Type_risk",loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
 
 
 ### IDEA: Keep only three principal components, to favour interpretability of the dataset. 
@@ -185,7 +178,6 @@ plot_pca_circle = function(x, y) {
 }
 
 
-
 #fonction to visualize the biplot 
 plot_biplot <- function(comp1, comp2, df_scores, df_loadings, scale_factor = 12) {
   # Convert column indices to names if numeric indices are provided
@@ -198,10 +190,11 @@ plot_biplot <- function(comp1, comp2, df_scores, df_loadings, scale_factor = 12)
     geom_segment(data = df_loadings, aes_string(x = "0", y = "0", 
                                                 xend = paste(comp1, "* scale_factor"), 
                                                 yend = paste(comp2, "* scale_factor")), 
-                 arrow = arrow(type = "closed", length = unit(0.1, "inches")), color = "blue") +
+                 arrow = arrow(type = "closed", length = unit(0.1, "inches")), color = "black") +
     labs(title = "Basic PCA Biplot", x = comp1, y = comp2) +
-    geom_text(data = df_loadings, aes_string(x = paste(comp1, "* scale_factor"), 
-                                             y = paste(comp2, "* scale_factor"), label = "Label"), 
-              hjust = 0, vjust = 0, color = "blue", size = 3, nudge_x = 1.03, nudge_y = 0.03)
+    geom_text_repel(data = df_loadings, aes_string(x = paste(comp1, "* scale_factor"), 
+                                                   y = paste(comp2, "* scale_factor"), label = "Label"), 
+                    color = "black", size = 3)
 }
+
 
