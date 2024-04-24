@@ -7,6 +7,7 @@ library(ggplot2)
 library(ggrepel)
 library(ggforce)
 library(ggfortify)
+library(grid)
 
 
 df = read.csv("preprocessedData.csv")
@@ -80,6 +81,23 @@ plot_pca_circle(cor1, cor2)
 plot_pca_circle(cor2, cor3)
 plot_pca_circle(cor3, cor4)
 
+scores = as.data.frame(scores)
+colnames(scores) = paste("PC", 1:7, sep = "")
+typerisk = df$Type_risk
+scores$Typerisk = typerisk
+ndoors = df$N_doors
+scores$ndoors = ndoors
+
+loadings = as.data.frame(PCA$vectors) 
+loadings$variable = colnames(df_quant)
+colnames(loadings) = paste("PC", 1:7, sep = "")
+colnames(loadings)[8] = "Label"
+
+#biplots for the different non-robust pca components 
+plot_biplot("PC1", "PC2", scores, loadings)
+plot_biplot("PC1", "PC3", scores, loadings)
+plot_biplot("PC2", "PC3", scores, loadings)
+
 
 
 # Apply robust PCA on your dataset (If there are less than 50000 observations and less than 20 variables then the MCD is used.)
@@ -116,66 +134,27 @@ plot_pca_circle(cor_rob1, cor_rob3)
 scores_robust = scale(df_quant) %*% PCA_robust$vectors 
 
 
-#plotting the biplot 
+#plotting the biplot using autoplot 
 autoplot(pca, data= df, colour="Type_risk",loadings = TRUE, loadings.colour = 'blue',
          loadings.label = TRUE, loadings.label.size = 3)
 
 
 ### IDEA: Keep only three principal components, to favour interpretability of the dataset. 
-scores = as.data.frame(scores)
-colnames(scores) = paste("PC", 1:7, sep = "")
-typerisk = df$Type_risk
-scores$Typerisk = typerisk
-
-loadings = as.data.frame(PCA$vectors) 
-loadings$variable = colnames(df_quant)
-colnames(loadings) = paste("PC", 1:7, sep = "")
-colnames(loadings)[8] = "Label"
-
-#biplots for the different non-robust pca components 
-
-scale_factor = 12
-ggplot(scores, aes(x = PC2, y = PC3,color=typerisk)) +
-  geom_point(alpha =0.7) +  # Add points
-  theme_minimal() +
-  geom_segment(data = loadings, aes(x = 0, y = 0, xend = PC2 * scale_factor, yend = PC3 * scale_factor), 
-               arrow = arrow(type = "closed", length = unit(0.1, "inches")), color = "blue") +
-  labs(title = "Basic PCA Biplot", x = "PC1", y = "PC2") +
-  geom_text(data = loadings, aes(x = PC2 * scale_factor, y = PC3 * scale_factor, label = Label), 
-          hjust = 0, vjust = 0, color = "blue", size = 3, nudge_x = 0.02, nudge_y = 0.02) 
-
-ggplot(scores, aes(x = PC1, y = PC2,color=typerisk)) +
-  geom_point(alpha =0.7) +  # Add points
-  theme_minimal() +
-  geom_segment(data = loadings, aes(x = 0, y = 0, xend = PC1 * scale_factor, yend = PC2 * scale_factor), 
-               arrow = arrow(type = "closed", length = unit(0.1, "inches")), color = "blue") +
-  labs(title = "Basic PCA Biplot", x = "PC1", y = "PC2") +
-  geom_text(data = loadings, aes(x = PC1 * scale_factor, y = PC2 * scale_factor, label = Label), 
-            hjust = 0, vjust = 0, color = "blue", size = 3, nudge_x = 0.02, nudge_y = 0.02) 
-
-
-
 
 scores_robust = as.data.frame(scores_robust)
-colnames(scores_robust) = paste("PC", 1:7, sep = "")
+colnames(scores_robust) = paste("PC_robust", 1:7, sep = "")
 typerisk = df$Type_risk
 scores_robust$Typerisk = typerisk
 
 loadings_robust = as.data.frame(PCA_robust$vectors) 
 loadings_robust$variable = colnames(df_quant)
-colnames(loadings_robust) = paste("PC", 1:7, sep = "")
+colnames(loadings_robust) = paste("PC_robust", 1:7, sep = "")
 colnames(loadings_robust)[8] = "Label"
 
-#biplots for the robust princicipal components 
-ggplot(scores_robust, aes(x = PC1, y = PC2,color=typerisk)) +
-  geom_point(alpha =0.7) +  # Add points
-  theme_minimal() +
-  geom_segment(data = loadings_robust, aes(x = 0, y = 0, xend = PC1 * scale_factor, yend = PC2 * scale_factor), 
-               arrow = arrow(type = "closed", length = unit(0.1, "inches")), color = "blue") +
-  labs(title = "Basic PCA Biplot", x = "PC1", y = "PC2") +
-  geom_text(data = loadings_robust, aes(x = PC1 * scale_factor, y = PC2 * scale_factor, label = Label), 
-            hjust = 0, vjust = 0, color = "blue", size = 3, nudge_x = 1.03, nudge_y = 0.03) 
 
+plot_biplot("PC_robust1", "PC_robust2", scores_robust, loadings_robust)
+plot_biplot("PC_robust1", "PC_robust3", scores_robust, loadings_robust)
+plot_biplot("PC_robust2", "PC_robust3", scores_robust, loadings_robust)
 
 
 #function to visualize the correlation circle 
@@ -206,4 +185,23 @@ plot_pca_circle = function(x, y) {
 }
 
 
+
+#fonction to visualize the biplot 
+plot_biplot <- function(comp1, comp2, df_scores, df_loadings, scale_factor = 12) {
+  # Convert column indices to names if numeric indices are provided
+  if (is.numeric(comp1)) comp1 <- names(df_scores)[comp1]
+  if (is.numeric(comp2)) comp2 <- names(df_scores)[comp2]
+  
+  ggplot(df_scores, aes_string(x = comp1, y = comp2, color = "typerisk")) +
+    geom_point(alpha = 0.7) +  # Add points
+    theme_minimal() +
+    geom_segment(data = df_loadings, aes_string(x = "0", y = "0", 
+                                                xend = paste(comp1, "* scale_factor"), 
+                                                yend = paste(comp2, "* scale_factor")), 
+                 arrow = arrow(type = "closed", length = unit(0.1, "inches")), color = "blue") +
+    labs(title = "Basic PCA Biplot", x = comp1, y = comp2) +
+    geom_text(data = df_loadings, aes_string(x = paste(comp1, "* scale_factor"), 
+                                             y = paste(comp2, "* scale_factor"), label = "Label"), 
+              hjust = 0, vjust = 0, color = "blue", size = 3, nudge_x = 1.03, nudge_y = 0.03)
+}
 
