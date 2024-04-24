@@ -1,8 +1,6 @@
-#install.packages("robust")
 library(ggplot2)
 library(scales)
 library(dplyr)
-library(robust)
 
 database <- read.csv("preprocessedData.csv")
 str(database)
@@ -23,6 +21,7 @@ database_quant <- database %>% select(where(is.numeric))
 database_qual <- database %>% select(where(~ !is.numeric(.)))
 
 # 1. Univariate analysis
+
 mean(database$Premium)
 median(database$Premium)
 mean(database$Premium,trim=0.1)
@@ -56,6 +55,11 @@ ggplot(database, aes(x = Diesel)) +
   geom_bar(fill = "blue") +
   labs(x = "Fuel type", y = "Amount of people") +
   ggtitle("Bar plot of fuel type")
+
+ggplot(database, aes(x = Diesel, y = Premium)) + 
+  geom_boxplot() +
+  labs(x = "Type of fuel", y = "Premium") +
+  ggtitle("Relation between the type of fuel and premium")
 
 #type of client
 ggplot(database, aes(x = newClient)) + 
@@ -93,40 +97,21 @@ ggplot(database, aes(x = N_doors)) +
   labs(x = "Number of doors", y = "Amount of people") +
   ggtitle("Bar plot of number of doors")
 
-# 2. Outliers detection
+#frequency of claims
+ggplot(database, aes(x=N_claims_year))+
+  geom_bar()+
+  geom_label(stat='count', 
+             aes(label =  percent(prop.table(after_stat(count)), 
+                                  accuracy = 0.01)),vjust = 0.5)+
+  ggtitle("Proportion of policies by number of claims")
 
-# 2.1 Univariate detection
+# Contigency table
+tableau <- table(database$Type_risk, database$N_claims_year)
+ggplot(data = database, aes(x = factor(Type_risk), fill = factor(N_claims_year))) +
+  geom_bar(position = "fill") +
+  labs(x = "Type risk", y = "Proportion", fill = "nb claims") +
+  theme_minimal() +
+  coord_flip()
+tableau
+
 summary(database_quant)
-boxplot(database_quant)
-
-boxplot(database_quant$Premium, main="Box plot of premium") 
-boxplot(database_quant$Cost_claims_year, main="Box plot of cost of claims/year") 
-boxplot(database_quant$Power, main="Box plot of power")
-boxplot(database_quant$Cylinder_capacity, main="Box plot of cylinder capacity")
-boxplot(database_quant$Value_vehicle, main="Box plot of value of vehicle on 2019")
-boxplot(database_quant$Length, main="Box plot of length")
-boxplot(database_quant$Weight, main="Box plot of weight")
-# => outliers presence
-
-#3sigma-rule (robust)
-b1=median(database$Premium)-3*mad(database$Premium)
-b2=median(database$Premium)+3*mad(database$Premium)
-plot(database$Premium, ylab='Premium')
-abline(h=b2, col='red')
-
-b1=median(database$Power)-3*mad(database$Power)
-b2=median(database$Power)+3*mad(database$Power)
-plot(database$Power, ylab='Power')
-abline(h=b2, col='red')
-
-# 2.2 Multivariate detection
-apply(database_quant, 2, mean) #mean vector of quantitative variables
-cov(database_quant) #covariance matrix
-
-#Stahel-Donoho estimators
-SD=covRob(database_quant, estim="donostah")
-SD
-
-#MCD
-MCD=covRob(database_quant, estim="mcd")
-MCD
