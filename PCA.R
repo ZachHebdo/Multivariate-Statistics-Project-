@@ -83,8 +83,8 @@ plot_pca_circle(cor3, cor4)
 
 
 # Apply robust PCA on your dataset (If there are less than 50000 observations and less than 20 variables then the MCD is used.)
-robust_cov <- covRob(df_quant, corr = TRUE, estim = 'weighted')
-PCA_robust <- eigen(robust_cov$cov)
+robust_cov =  covRob(df_quant, corr = TRUE, estim = 'weighted')
+PCA_robust = eigen(robust_cov$cov)
 PCA_robust$vectors = -1* PCA_robust$vectors
 PCA_robust$values
 
@@ -179,16 +179,16 @@ ggplot(scores_robust, aes(x = PC1, y = PC2,color=typerisk)) +
 
 
 #function to visualize the correlation circle 
-plot_pca_circle <- function(x, y) {
+plot_pca_circle = function(x, y) {
   # Create a data frame from the vectors
-  dftest <- data.frame(PCx = x, PCy = y, Labels = colnames(df_quant))
+  dftest = data.frame(PCx = x, PCy = y, Labels = colnames(df_quant))
   
   # Determine the names for the PC axes dynamically based on input
-  x_name <- deparse(substitute(x))
-  y_name <- deparse(substitute(y))
+  x_name = deparse(substitute(x))
+  y_name = deparse(substitute(y))
   
   # Create the ggplot object
-  p <- ggplot(dftest, aes(x = PCx, y = PCy)) +
+  p = ggplot(dftest, aes(x = PCx, y = PCy)) +
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = 0) +
     geom_point() +
