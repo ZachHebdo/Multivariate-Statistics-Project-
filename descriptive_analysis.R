@@ -1,6 +1,10 @@
+#install.packages("GGally")
+#install.packages("corrplot")
+library(corrplot)
 library(ggplot2)
 library(scales)
 library(dplyr)
+library(GGally)
 
 database <- read.csv("preprocessedData.csv")
 str(database)
@@ -39,6 +43,10 @@ ggplot(database, aes(x = N_claims_year)) +
   labs(x = "Number of claims per year", y = "Amount of people") +
   ggtitle("Bar plot of number of claims per year")
 
+# Distribution of number of claims (you have to run the function at the end)
+claims_summary <- create_summary_table(database, "N_claims_year")
+claims_summary
+
 #Type risks
 ggplot(database, aes(x = Type_risk)) + 
   geom_bar(fill = "blue") +
@@ -75,6 +83,10 @@ ggplot(database, aes(x = Diesel)) +
   geom_bar(fill = "blue") +
   labs(x = "Fuel type", y = "Amount of people") +
   ggtitle("Bar plot of fuel type")
+
+fuel_summary <- create_summary_table(database, "Diesel")
+fuel_summary
+
 
 # Relation between the type of fuel and premium
 ggplot(database, aes(x = Diesel, y = Premium)) + 
@@ -142,3 +154,23 @@ ggplot(data = database, aes(x = factor(Type_risk), fill = factor(N_claims_year))
 tableau
 
 summary(database_quant)
+cor(database_quant)
+ggpairs(database_quant)
+
+#### FUNCTION TO RUN BEFORE THE DESCRIPTIVE ANALYSIS ##########################
+
+# Function to create table
+create_summary_table <- function(data, variable_name) {
+  if (!(variable_name %in% colnames(data))) {
+    stop("Variable not found in the dataframe")
+  }
+  summary_table <- data %>%
+    count(.data[[variable_name]]) %>%
+    mutate(percentage = n / sum(n) * 100) %>%
+    rename(
+      Category = variable_name,  # Nommer la colonne de catégorie
+      Number_of_Claims = n,  # Nommer le nombre d'occurrences
+      Percentage = percentage  # Pourcentage des occurrences
+    )
+  return(summary_table)
+}

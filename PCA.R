@@ -72,6 +72,27 @@ plot(scores[,1:2])
 inertie_perc=100*PCA$values/sum(PCA$values)
 cumsum(inertie_perc)
 
+#calculating percentage of inertie explicated 
+perc_explained = PCA$values / sum(PCA$values) * 100
+
+#dataframe for ggplot 
+pca_df = data.frame(
+  Dimension = 1:length(PCA$values),
+  VarianceExplained = perc_explained
+)
+
+# Now create the screeplot 
+ggplot(pca_df, aes(x = Dimension, y = VarianceExplained)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  geom_text(aes(label = sprintf("%.1f%%", VarianceExplained)), vjust = -0.3, size = 3.5) +
+  geom_line(aes(y = perc_explained), group = 1, colour = "black") +
+  geom_point(aes(y = perc_explained), colour = "black") +
+  theme_minimal() +
+  labs(x = "Dimensions", y = "Percentage of Explained Variance", 
+       title = "Scree Plot for the non-robust PCA") +
+  scale_x_continuous(breaks = 1:length(PCA$values)) # Ensure all dimension labels are shown
+
+
 #calculating correlations for the first 4 components 
 cor1 = sqrt(PCA$values[1])*PCA$vectors[,1]
 cor2 = sqrt(PCA$values[2])*PCA$vectors[,2]
@@ -105,6 +126,9 @@ plot_pca_contribution(loadings, 1)
 plot_pca_contribution(loadings, 2)
 plot_pca_contribution(loadings, 3)
 
+
+
+
 ##            ROBUST PCA 
 ##
 # Apply robust PCA on your dataset (If there are less than 50000 observations and less than 20 variables then the MCD is used.)
@@ -116,8 +140,26 @@ PCA_robust$values
 plot(PCA_robust$values, type='l')
 
 #calculating percentage of inertie explicated 
-inertie_perc_robuste=100*PCA_robust$values/sum(PCA_robust$values)
-cumsum(inertie_perc_robuste)
+perc_explained_robust = PCA_robust$values / sum(PCA_robust$values) * 100
+
+#dataframe for ggplot 
+pca_df_robust = data.frame(
+  Dimension = 1:length(PCA_robust$values),
+  VarianceExplained = perc_explained_robust,
+)
+
+# Now create the screeplot 
+ggplot(pca_df_robust, aes(x = Dimension, y = VarianceExplained)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  geom_text(aes(label = sprintf("%.1f%%", VarianceExplained)), vjust = -0.3, size = 3.5) +
+  geom_line(aes(y = perc_explained_robust), group = 1, colour = "black") +
+  geom_point(aes(y = perc_explained_robust), colour = "black") +
+  theme_minimal() +
+  labs(x = "Dimensions", y = "Percentage of Explained Variance", 
+       title = "Scree Plot for the Robust PCA") +
+  scale_x_continuous(breaks = 1:length(PCA_robust$values)) # Ensure all dimension labels are shown
+
+
 
 #calculating correlations for the first 4 components 
 cor_rob1 = sqrt(PCA_robust$values[1])*PCA_robust$vectors[,1]
