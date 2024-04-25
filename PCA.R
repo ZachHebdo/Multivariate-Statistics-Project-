@@ -150,7 +150,7 @@ pca_df_robust = data.frame(
 
 # Now create the screeplot 
 ggplot(pca_df_robust, aes(x = Dimension, y = VarianceExplained)) +
-  geom_bar(stat = "identity", fill = "blue") +
+  geom_bar(stat = "identity", fill = "deepskyblue") +
   geom_text(aes(label = sprintf("%.1f%%", VarianceExplained)), vjust = -0.3, size = 3.5) +
   geom_line(aes(y = perc_explained_robust), group = 1, colour = "black") +
   geom_point(aes(y = perc_explained_robust), colour = "black") +
