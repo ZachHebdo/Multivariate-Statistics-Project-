@@ -62,9 +62,9 @@ stripplot(imputedData, "Length", pch = 20, cex = 1.2)
 # This part is to change the columns that have numbers while they are categorical
 # into purely categorical columns which will make it easier to run categorization
 
-db_final<-complet
+inputed_df<-complet
 
-db_final <- db_final %>%
+inputed_df <- inputed_df %>%
     mutate(Type_risk = case_when(
         Type_risk == 1 ~ "motorbikes",
         Type_risk == 2 ~ "vans",
@@ -74,84 +74,109 @@ db_final <- db_final %>%
     ))
 
 # Categorizing number of policies in force
-db_final <- db_final %>%
+inputed_df <- inputed_df %>%
     mutate(Policies_in_force = ifelse(Policies_in_force > 1, "Many", as.character(Policies_in_force)))
 
+# Transforming the Birth Year variable in Age variable.
+inputed_df$Age<- 2018 - as.numeric(inputed_df$Birth_year) 
+inputed_df$Age <- case_when(inputed_df$Age<30 ~"young adult",
+                            inputed_df$Age>=30 & inputed_df$Age<70 ~ "adult",
+                            inputed_df$Age>=70 ~ "senior")
+
+# To get Licence time, added +1, because new drivers would have value of 0. 
+inputed_df$Licence_time<- 2018- as.numeric(inputed_df$Licence_year)+ 1 
+inputed_df$Licence_time <- case_when(inputed_df$Licence_time>=1 & inputed_df$Licence_time<=10 ~"young driver",
+                                     inputed_df$Licence_time>10 & inputed_df$Licence_time<=35 ~ "experienced driver",
+                                     inputed_df$Licence_time>35 ~"senior driver")
+                            
 # Categorizing Seniority
-db_final <- db_final %>%
+inputed_df <- inputed_df %>%
     mutate(Seniority = ifelse(as.numeric(Seniority) > 1, "0", as.character(Seniority))) 
-names(db_final)[names(db_final) == "Seniority"] <- "newClient"
+names(inputed_df)[names(inputed_df) == "Seniority"] <- "newClient"
 
 # Categorizing Lapse
-db_final <- db_final %>%
+inputed_df <- inputed_df %>%
     mutate(Lapse = ifelse(as.numeric(Lapse) > 1, 1, as.character(Lapse)))
 
 # Premium remains quantitative.
-db_final$Premium = as.numeric(db_final$Premium)
+inputed_df$Premium = as.numeric(inputed_df$Premium)
 
-db_final <-  db_final %>% mutate(N_claims_history = case_when(
-    N_claims_history == 1 ~ "1",
-    N_claims_history > 1 & N_claims_history < 5 ~ "2,3,4",
-    N_claims_history > 4 ~ "5+",
-    TRUE ~ as.character(N_claims_history)))  # Pour gérer les éventuels cas non couverts
+# inputed_df <-  inputed_df %>% mutate(N_claims_history = case_when(
+#     N_claims_history == 1 ~ "1",
+#     N_claims_history > 1 & N_claims_history < 5 ~ "2,3,4",
+#     N_claims_history > 4 ~ "5+",
+#     TRUE ~ as.character(N_claims_history)))  # Pour gérer les éventuels cas non couverts
 
-db_final$N_claims_history <- as.factor(db_final$N_claims_history)
+inputed_df <- inputed_df %>% mutate(N_claims = case_when(
+    as.numeric(N_claims_history) == 1 ~ "1",
+    as.numeric(N_claims_history) > 1 & as.numeric(N_claims_year) == 1 ~ "2",
+    as.numeric(N_claims_year) > 1 ~ "3"))
+
+inputed_df <- inputed_df %>% mutate(N_claims_history = ifelse(as.numeric(N_claims_history) > 1, "many", as.character(N_claims_history))) 
+
+inputed_df$N_claims_history <- as.factor(inputed_df$N_claims_history)
 
 ################################################################################
+## VARIABLE SELECTION and TREATMENT (separating into quantitative and qualitative)
 
-# db_sinis <- db_final 
+# df <- inputed_df 
 
 #### If we take the entire set of observations, the number of 0s in cost_claims_year is so large, that the robust covariance matrix becomes singular.
 #### We could direct our questions to the group of people who had claims in that year, so that we only look at non-zero, and thus invertible matrices.
 
 # Here we are interested in only the observations which have had at least one claim in the current year.
-#db_sinis <- db_final %>%filter(as.numeric(N_claims_year) > 0) 
+df <- inputed_df %>%filter(as.numeric(N_claims_year) > 0) 
 
 # Suppose you want to rename "oldName" to "newName"
-names(db_sinis)[names(db_sinis) == "Distribution_channel"] <- "Broker"
-names(db_sinis)[names(db_sinis) == "Area"] <- "Urban"
+names(df)[names(df) == "Distribution_channel"] <- "Broker"
+names(df)[names(df) == "Area"] <- "Urban"
 
 # Convert 'P' to 0 and 'D' to 1
-db_sinis$Type_fuel <- ifelse(db_sinis$Type_fuel == "P", 0, 1)
-names(db_sinis)[names(db_sinis) == "Type_fuel"] <- "Diesel"
+df$Type_fuel <- ifelse(df$Type_fuel == "P", 0, 1)
+names(df)[names(df) == "Type_fuel"] <- "Diesel"
 
 # REMOVING THESE VARIABLES, AS THEY ARE NOT INTERESTING FOR OUR ANALYSIS
-db_sinis <- subset(db_sinis, select = -Birth_year)
-db_sinis <- subset(db_sinis, select = -Licence_year)
-db_sinis <- subset(db_sinis, select = -Start_year)
-db_sinis <- subset(db_sinis, select = -Year_matriculation)
-db_sinis <- subset(db_sinis, select = -R_Claims_history)
+df <- subset(df, select = -Birth_year)
+df <- subset(df, select = -Licence_year)
+df <- subset(df, select = -Start_year)
+df <- subset(df, select = -Year_matriculation)
+df <- subset(df, select = -R_Claims_history)
+df <- subset(df, select = -N_doors)
+df <- subset(df, select = -N_claims_history)
+df <- subset(df, select = -N_claims_year)
+# df <- df %>%
+#     mutate(N_claims_year = ifelse(as.numeric(N_claims_year) > 3, "4+", as.character(N_claims_year)))
 
-db_sinis <- db_sinis %>%
-    mutate(N_claims_year = ifelse(as.numeric(N_claims_year) > 3, "4+", as.character(N_claims_year)))
+df$newClient<-as.factor(df$newClient)
+df$Broker <- as.factor(df$Broker)
+df$Lapse <- as.factor(df$Lapse)
+df$Policies_in_force<- as.factor(df$Policies_in_force)
+#df$N_doors<- as.factor(df$N_doors)
+df$Urban <- as.factor(df$Urban)
+df$Diesel <- as.factor(df$Diesel)
+df$Payment <- as.factor(df$Payment)
+df$Second_driver <- as.factor(df$Second_driver)
+#df$N_claims_year <- as.factor(df$N_claims_year)
+df$Type_risk <- as.factor(df$Type_risk)
+#df$N_claims_history <- as.factor(df$N_claims_history)
+df$N_claims <- as.factor(df$N_claims)
+df$Licence_time <- as.factor(df$Licence_time)
+df$Age <- as.factor(df$Age)
 
-db_sinis$newClient<-as.factor(db_sinis$newClient)
-db_sinis$Broker <- as.factor(db_sinis$Broker)
-db_sinis$Lapse <- as.factor(db_sinis$Lapse)
-db_sinis$Policies_in_force<- as.factor(db_sinis$Policies_in_force)
-db_sinis$N_doors<- as.factor(db_sinis$N_doors)
-db_sinis$Urban <- as.factor(db_sinis$Urban)
-db_sinis$Diesel <- as.factor(db_sinis$Diesel)
-db_sinis$Payment <- as.factor(db_sinis$Payment)
-db_sinis$Second_driver <- as.factor(db_sinis$Second_driver)
-db_sinis$N_claims_year <- as.factor(db_sinis$N_claims_year)
-db_sinis$Type_risk <- as.factor(db_sinis$Type_risk)
-db_sinis$N_claims_history <- as.factor(db_sinis$N_claims_history)
+df_quant <- df %>% select(where(is.numeric))
+df_qual <- df %>% select(where(~ !is.numeric(.)))
 
-db_quant <- db_sinis %>% select(where(is.numeric))
-db_qual <- db_sinis %>% select(where(~ !is.numeric(.)))
-
-#glimpse(db_quant)
-#glimpse(db_qual)
+#glimpse(df_quant)
+#glimpse(df_qual)
 
 countVar <- function(var) {
-    db_sinis %>% count({{var}})
+    df %>% count({{var}})
 }
 
-lapply(db_qual, countVar)
+lapply(df_qual, countVar)
 
 # Organize the dataset into quantitative variables appearing first, qualitative later
-db_sinis <- db_sinis %>% select(c(colnames(db_quant), colnames(db_qual)))
+df <- df %>% select(c(colnames(df_quant), colnames(df_qual)))
 
-view(db_sinis)
-write.csv(db_sinis, "preprocessedData.csv", row.names = FALSE)
+view(df)
+write.csv(df, "preprocessedData.csv", row.names = FALSE)
