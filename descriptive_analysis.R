@@ -1,6 +1,10 @@
+install.packages("GGally")
+install.packages("corrplot")
+library(corrplot)
 library(ggplot2)
 library(scales)
 library(dplyr)
+library(GGally)
 
 database <- read.csv("preprocessedData.csv")
 str(database)
@@ -142,3 +146,5 @@ ggplot(data = database, aes(x = factor(Type_risk), fill = factor(N_claims_year))
 tableau
 
 summary(database_quant)
+cor(database_quant)
+ggpairs(database_quant)
