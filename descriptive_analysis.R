@@ -37,6 +37,10 @@ winsor=function(x, p=c(0.05,0.95)){
   return(mean(x))}
 winsor(database$Premium)
 
+#policies proportion
+policies_summary <- create_summary_table(database, "Policies")
+policies_summary
+
 #Number of claims per year
 ggplot(database, aes(x = N_claims_year)) + 
   geom_bar(fill = "blue") +
@@ -168,9 +172,9 @@ create_summary_table <- function(data, variable_name) {
     count(.data[[variable_name]]) %>%
     mutate(percentage = n / sum(n) * 100) %>%
     rename(
-      Category = variable_name,  # Nommer la colonne de catégorie
-      Number_of_Claims = n,  # Nommer le nombre d'occurrences
-      Percentage = percentage  # Pourcentage des occurrences
+      Category = variable_name,
+      Number = n,
+      Percentage = percentage
     )
   return(summary_table)
 }
