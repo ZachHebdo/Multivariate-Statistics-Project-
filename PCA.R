@@ -9,6 +9,77 @@ library(ggforce)
 library(ggfortify)
 library(grid)
 
+#function to visualize the correlation circle 
+plot_pca_circle = function(x, y) {
+    # Create a data frame from the vectors
+    dftest = data.frame(PCx = x, PCy = y, Labels = colnames(df_quant))
+    
+    # Determine the names for the PC axes dynamically based on input
+    x_name = deparse(substitute(x))
+    y_name = deparse(substitute(y))
+    
+    # Create the ggplot object
+    p = ggplot(dftest, aes(x = PCx, y = PCy)) +
+        geom_hline(yintercept = 0) +
+        geom_vline(xintercept = 0) +
+        geom_point() +
+        geom_text_repel(aes(label = Labels)) +
+        annotate("path", x = cos(seq(0, 2 * pi, length.out = 100)), 
+                 y = sin(seq(0, 2 * pi, length.out = 100)), colour = "black") +
+        coord_fixed(ratio = 1) +
+        xlim(-1, 1) +
+        ylim(-1, 1) +
+        labs(x = x_name, y = y_name) +
+        theme_minimal()
+    
+    # Return the plot
+    return(p)
+}
+
+#fonction to visualize the biplot 
+plot_biplot <- function(comp1, comp2, df_scores, df_loadings, scale_factor = 12) {
+    # Convert column indices to names if numeric indices are provided
+    if (is.numeric(comp1)) comp1 <- names(df_scores)[comp1]
+    if (is.numeric(comp2)) comp2 <- names(df_scores)[comp2]
+    
+    ggplot(df_scores, aes_string(x = comp1, y = comp2, color = "typerisk")) +
+        geom_point(alpha = 0.7) +  # Add points
+        theme_minimal() +
+        geom_segment(data = df_loadings, aes_string(x = "0", y = "0", 
+                                                    xend = paste(comp1, "* scale_factor"), 
+                                                    yend = paste(comp2, "* scale_factor")), 
+                     arrow = arrow(type = "closed", length = unit(0.1, "inches")), color = "black") +
+        labs(title = "Basic PCA Biplot", x = comp1, y = comp2) +
+        geom_text_repel(data = df_loadings, aes_string(x = paste(comp1, "* scale_factor"), 
+                                                       y = paste(comp2, "* scale_factor"), label = "Label"), 
+                        color = "black", size = 3)
+}
+
+#function to create graphs to see contribution to each component 
+plot_pca_contribution <- function(loadings, dimension, palette = "Blues") {
+    # Calculate contributions for the specified dimension
+    contributions <- (loadings[, dimension]^2 / sum(loadings[, dimension]^2)) * 100
+    
+    # Create a data frame for the contributions
+    df_contribution <- data.frame(
+        Variables = loadings$Label,
+        Contributions = contributions
+    )
+    
+    # Order the data frame by contributions in descending order to get the descending order bar 
+    df_contribution <- df_contribution[order(-df_contribution$Contributions),]
+    
+    # Create the plot
+    p <- ggplot(df_contribution, aes(x = reorder(Variables, -Contributions), y = Contributions, fill = Variables)) +
+        geom_bar(stat = "identity") +
+        theme_minimal() +
+        labs(title = paste("Contribution of columns to Dim-", dimension, sep=""),
+             y = "Contributions (%)", x ="Variables") +
+        geom_hline(yintercept = mean(df_contribution$Contributions), linetype="dashed", color = "red") +
+        scale_fill_brewer(palette = palette, direction = -1) # Optional color scale
+    
+    return(p)
+}
 
 df = read.csv("preprocessedData.csv")
 
@@ -16,19 +87,20 @@ df$newClient<-as.factor(df$newClient)
 df$Broker <- as.factor(df$Broker)
 df$Lapse <- as.factor(df$Lapse)
 df$Policies_in_force<- as.factor(df$Policies_in_force)
-df$N_doors<- as.factor(df$N_doors)
+#df$N_doors<- as.factor(df$N_doors)
 df$Urban <- as.factor(df$Urban)
 df$Diesel <- as.factor(df$Diesel)
 df$Payment <- as.factor(df$Payment)
 df$Second_driver <- as.factor(df$Second_driver)
-df$N_claims_year <- as.factor(df$N_claims_year)
+#df$N_claims_year <- as.factor(df$N_claims_year)
 df$Type_risk <- as.factor(df$Type_risk)
-df$N_claims_history <- as.factor(df$N_claims_history)
+#df$N_claims_history <- as.factor(df$N_claims_history)
+df$N_claims <- as.factor(df$N_claims)
+df$Licence_time <- as.factor(df$Licence_time)
+df$Age <- as.factor(df$Age)
 
 df_quant <- df %>% select(where(is.numeric))
 df_qual <- df %>% select(where(~ !is.numeric(.)))
-## make sure to run the function for plotting the circle at the end of the code 
-
 
 #descriptive analysis 
 summary(df_quant)
@@ -127,8 +199,6 @@ plot_pca_contribution(loadings, 2)
 plot_pca_contribution(loadings, 3)
 
 
-
-
 ##            ROBUST PCA 
 ##
 # Apply robust PCA on your dataset (If there are less than 50000 observations and less than 20 variables then the MCD is used.)
@@ -145,8 +215,7 @@ perc_explained_robust = PCA_robust$values / sum(PCA_robust$values) * 100
 #dataframe for ggplot 
 pca_df_robust = data.frame(
   Dimension = 1:length(PCA_robust$values),
-  VarianceExplained = perc_explained_robust,
-)
+  VarianceExplained = perc_explained_robust)
 
 # Now create the screeplot 
 ggplot(pca_df_robust, aes(x = Dimension, y = VarianceExplained)) +
@@ -158,8 +227,6 @@ ggplot(pca_df_robust, aes(x = Dimension, y = VarianceExplained)) +
   labs(x = "Dimensions", y = "Percentage of Explained Variance", 
        title = "Scree Plot for the Robust PCA") +
   scale_x_continuous(breaks = 1:length(PCA_robust$values)) # Ensure all dimension labels are shown
-
-
 
 #calculating correlations for the first 4 components 
 cor_rob1 = sqrt(PCA_robust$values[1])*PCA_robust$vectors[,1]
@@ -175,9 +242,7 @@ plot_pca_circle(cor_rob1, cor_rob3)
 PCA_robust$vectors[,2] = -1 * PCA_robust$vectors[,2]
 scores_robust = scale(df_quant) %*% PCA_robust$vectors 
 
-
-
-### IDEA: Keep only three principal components, to favour interpretability of the dataset. 
+### IDEA: Keep three principal components, to have a decent amount of variance explained. 
 
 scores_robust = as.data.frame(scores_robust)
 colnames(scores_robust) = paste("PC_robust", 1:7, sep = "")
@@ -198,80 +263,4 @@ plot_biplot("PC_robust2", "PC_robust3", scores_robust, loadings_robust)
 plot_pca_contribution(loadings_robust, 1)
 plot_pca_contribution(loadings_robust, 2)
 plot_pca_contribution(loadings_robust, 3)
-
-
-
-
-#function to visualize the correlation circle 
-plot_pca_circle = function(x, y) {
-  # Create a data frame from the vectors
-  dftest = data.frame(PCx = x, PCy = y, Labels = colnames(df_quant))
-  
-  # Determine the names for the PC axes dynamically based on input
-  x_name = deparse(substitute(x))
-  y_name = deparse(substitute(y))
-  
-  # Create the ggplot object
-  p = ggplot(dftest, aes(x = PCx, y = PCy)) +
-    geom_hline(yintercept = 0) +
-    geom_vline(xintercept = 0) +
-    geom_point() +
-    geom_text_repel(aes(label = Labels)) +
-    annotate("path", x = cos(seq(0, 2 * pi, length.out = 100)), 
-             y = sin(seq(0, 2 * pi, length.out = 100)), colour = "black") +
-    coord_fixed(ratio = 1) +
-    xlim(-1, 1) +
-    ylim(-1, 1) +
-    labs(x = x_name, y = y_name) +
-    theme_minimal()
-  
-  # Return the plot
-  return(p)
-}
-
-
-#fonction to visualize the biplot 
-plot_biplot <- function(comp1, comp2, df_scores, df_loadings, scale_factor = 12) {
-  # Convert column indices to names if numeric indices are provided
-  if (is.numeric(comp1)) comp1 <- names(df_scores)[comp1]
-  if (is.numeric(comp2)) comp2 <- names(df_scores)[comp2]
-  
-  ggplot(df_scores, aes_string(x = comp1, y = comp2, color = "typerisk")) +
-    geom_point(alpha = 0.7) +  # Add points
-    theme_minimal() +
-    geom_segment(data = df_loadings, aes_string(x = "0", y = "0", 
-                                                xend = paste(comp1, "* scale_factor"), 
-                                                yend = paste(comp2, "* scale_factor")), 
-                 arrow = arrow(type = "closed", length = unit(0.1, "inches")), color = "black") +
-    labs(title = "Basic PCA Biplot", x = comp1, y = comp2) +
-    geom_text_repel(data = df_loadings, aes_string(x = paste(comp1, "* scale_factor"), 
-                                                   y = paste(comp2, "* scale_factor"), label = "Label"), 
-                    color = "black", size = 3)
-}
-
-#function to create graphs to see contribution to each component 
-plot_pca_contribution <- function(loadings, dimension, palette = "Blues") {
-  # Calculate contributions for the specified dimension
-  contributions <- (loadings[, dimension]^2 / sum(loadings[, dimension]^2)) * 100
-  
-  # Create a data frame for the contributions
-  df_contribution <- data.frame(
-    Variables = loadings$Label,
-    Contributions = contributions
-  )
-  
-  # Order the data frame by contributions in descending order to get the descending order bar 
-  df_contribution <- df_contribution[order(-df_contribution$Contributions),]
-  
-  # Create the plot
-  p <- ggplot(df_contribution, aes(x = reorder(Variables, -Contributions), y = Contributions, fill = Variables)) +
-    geom_bar(stat = "identity") +
-    theme_minimal() +
-    labs(title = paste("Contribution of columns to Dim-", dimension, sep=""),
-         y = "Contributions (%)", x ="Variables") +
-    geom_hline(yintercept = mean(df_contribution$Contributions), linetype="dashed", color = "red") +
-    scale_fill_brewer(palette = palette, direction = -1) # Optional color scale
-  
-  return(p)
-}
 
