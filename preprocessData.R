@@ -66,9 +66,9 @@ inputed_df<-complet
 
 inputed_df <- inputed_df %>%
     mutate(Type_risk = case_when(
-        Type_risk == 1 ~ "motorbikes",
-        Type_risk == 2 ~ "vans",
-        Type_risk == 3 ~ "passenger cars",
+        Type_risk == 1 ~ "moto",  # originally 'motorbikes'
+        Type_risk == 2 ~ "vans", 
+        Type_risk == 3 ~ "cars",  # originally 'passanger cars'
         Type_risk == 4 ~ "agricultural vehicles",
         TRUE ~ as.character(Type_risk)  # Pour gérer les éventuels cas non couverts
     ))
@@ -76,6 +76,7 @@ inputed_df <- inputed_df %>%
 # Categorizing number of policies in force
 inputed_df <- inputed_df %>%
     mutate(Policies_in_force = ifelse(Policies_in_force > 1, "Many", as.character(Policies_in_force)))
+names(inputed_df)[names(inputed_df) == "Policies_in_force"] <- "Policies"
 
 # Transforming the Birth Year variable in Age variable.
 inputed_df$Age<- 2018 - as.numeric(inputed_df$Birth_year) 
@@ -84,10 +85,10 @@ inputed_df$Age <- case_when(inputed_df$Age<30 ~"young adult",
                             inputed_df$Age>=70 ~ "senior")
 
 # To get Licence time, added +1, because new drivers would have value of 0. 
-inputed_df$Licence_time<- 2018- as.numeric(inputed_df$Licence_year)+ 1 
-inputed_df$Licence_time <- case_when(inputed_df$Licence_time>=1 & inputed_df$Licence_time<=10 ~"young driver",
-                                     inputed_df$Licence_time>10 & inputed_df$Licence_time<=35 ~ "experienced driver",
-                                     inputed_df$Licence_time>35 ~"senior driver")
+inputed_df$Licence<- 2018- as.numeric(inputed_df$Licence_year)+ 1 
+inputed_df$Licence<- case_when(inputed_df$Licence>=1 & inputed_df$Licence<=10 ~"young driver",
+                                     inputed_df$Licence>10 & inputed_df$Licence<=35 ~ "experienced driver",
+                                     inputed_df$Licence>35 ~"senior driver")
                             
 # Categorizing Seniority
 inputed_df <- inputed_df %>%
@@ -101,16 +102,11 @@ inputed_df <- inputed_df %>%
 # Premium remains quantitative.
 inputed_df$Premium = as.numeric(inputed_df$Premium)
 
-# inputed_df <-  inputed_df %>% mutate(N_claims_history = case_when(
-#     N_claims_history == 1 ~ "1",
-#     N_claims_history > 1 & N_claims_history < 5 ~ "2,3,4",
-#     N_claims_history > 4 ~ "5+",
-#     TRUE ~ as.character(N_claims_history)))  # Pour gérer les éventuels cas non couverts
-
 inputed_df <- inputed_df %>% mutate(N_claims = case_when(
     as.numeric(N_claims_history) == 1 ~ "1",
     as.numeric(N_claims_history) > 1 & as.numeric(N_claims_year) == 1 ~ "2",
     as.numeric(N_claims_year) > 1 ~ "3"))
+
 
 inputed_df <- inputed_df %>% mutate(N_claims_history = ifelse(as.numeric(N_claims_history) > 1, "many", as.character(N_claims_history))) 
 
@@ -147,20 +143,20 @@ df <- subset(df, select = -N_claims_year)
 # df <- df %>%
 #     mutate(N_claims_year = ifelse(as.numeric(N_claims_year) > 3, "4+", as.character(N_claims_year)))
 
+#df$N_claims_history <- as.factor(df$N_claims_history)
+#df$N_claims_year <- as.factor(df$N_claims_year)
+#df$N_doors<- as.factor(df$N_doors)
 df$newClient<-as.factor(df$newClient)
 df$Broker <- as.factor(df$Broker)
 df$Lapse <- as.factor(df$Lapse)
-df$Policies_in_force<- as.factor(df$Policies_in_force)
-#df$N_doors<- as.factor(df$N_doors)
+df$Policies<- as.factor(df$Policies)
 df$Urban <- as.factor(df$Urban)
 df$Diesel <- as.factor(df$Diesel)
 df$Payment <- as.factor(df$Payment)
-df$Second_driver <- as.factor(df$Second_driver)
-#df$N_claims_year <- as.factor(df$N_claims_year)
+df$Sec_driver <- as.factor(df$Second_driver)
 df$Type_risk <- as.factor(df$Type_risk)
-#df$N_claims_history <- as.factor(df$N_claims_history)
 df$N_claims <- as.factor(df$N_claims)
-df$Licence_time <- as.factor(df$Licence_time)
+df$Licence <- as.factor(df$Licence)
 df$Age <- as.factor(df$Age)
 
 df_quant <- df %>% select(where(is.numeric))
