@@ -75,10 +75,6 @@ eigenCDT = get_eigenvalue(mca1)
 # On vérifie que les valeurs propres en utilisent la table de Burt sont les carrées des valeurs propres de la table disjonctive complète.
 all(near(eigenBurt[,1], eigenCDT[,1]^2))
 
-get_mca_var(mca2)$coord
-get_mca_var(mca2)$cos2
-get_mca_var(mca2)$contrib
-
 # On vérifie qu'on doit garder 4 dimensions, considerant le cutoff de 1/P.
 fviz_screeplot(mca2, ncp = 8, addlabels = TRUE, ylim = c(0, 30)) + 
     geom_hline(yintercept=cutoff, linetype=2, color="red")
@@ -125,27 +121,25 @@ fviz_cos2(mca2, choice = "var", axes = 4)
 
 # Distance between modalities
 #------------------------------------
-# Calcul des effectif de chaque modalit´e pour le calcul des distances
-library(ade4)
+# Table Disjonctive Complete
+CDT = acm.disjonctif(df)
 
-tdc = acm.disjonctif(df)
+npl <- colSums(CDT)         # same as: apply(CDT, 2, sum)
 
-npl = NULL
-for (i in 1: dim(tdc)[2]){
-    npl[i] = sum(tdc[,i])
+dist <- function(mod1, mod2) {
+    (n*sum((CDT[,mod1]/npl[mod1] - CDT[,mod2]/npl[mod2])^2))^0.5
 }
-# Calcul des distances entre modalit´es
-dist = matrix(nrow = dim(tdc)[2], ncol = dim(tdc)[2])
-for (i in 1: dim(tdc)[2]){
-    for (j in 1:dim(tdc)[2]){
-        a = tdc[,i]/npl[i]
-        b = tdc[,j]/npl[j]
-        c = (a-b)^2
-        dist[i,j] = sqrt(dim(df)[1]*sum(c))
+dist_df <- data.frame(row.names = (names(CDT)))
+for (i in 1:dim(CDT)[2]) {
+    for (j in i:dim(CDT)[2]) {
+        dist_df[names(CDT)[i], names(CDT)[j]] <- round(dist(i, j), 2)
     }
 }
-distAff = round(dist,3) # Affichage ´epur´e des distances
+dist_df <- dist_df %>% replace(is.na(.), " ")
+dist_df
 
+Dist_CP_Gc <- n/npl - 1
+Dist_CP_Gc
 
 ### Inspect if there's any interesting relation between the qualitative variables and the Cost_claims_year variable: 
 df2 <- df %>% select(where(~ !is.numeric(.)) | "Cost_claims_year")

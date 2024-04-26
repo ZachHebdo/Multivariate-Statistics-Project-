@@ -86,9 +86,9 @@ inputed_df$Age <- case_when(inputed_df$Age<30 ~"young adult",
 
 # To get Licence time, added +1, because new drivers would have value of 0. 
 inputed_df$Licence<- 2018- as.numeric(inputed_df$Licence_year)+ 1 
-inputed_df$Licence<- case_when(inputed_df$Licence>=1 & inputed_df$Licence<=10 ~"young driver",
-                                     inputed_df$Licence>10 & inputed_df$Licence<=35 ~ "experienced driver",
-                                     inputed_df$Licence>35 ~"senior driver")
+inputed_df$Licence<- case_when(inputed_df$Licence>=1 & inputed_df$Licence<=10 ~"newbie",
+                                     inputed_df$Licence>10 & inputed_df$Licence<=35 ~ "seasoned",
+                                     inputed_df$Licence>35 ~"veteran")
                             
 # Categorizing Seniority
 inputed_df <- inputed_df %>%
@@ -140,12 +140,7 @@ df <- subset(df, select = -R_Claims_history)
 df <- subset(df, select = -N_doors)
 df <- subset(df, select = -N_claims_history)
 df <- subset(df, select = -N_claims_year)
-# df <- df %>%
-#     mutate(N_claims_year = ifelse(as.numeric(N_claims_year) > 3, "4+", as.character(N_claims_year)))
 
-#df$N_claims_history <- as.factor(df$N_claims_history)
-#df$N_claims_year <- as.factor(df$N_claims_year)
-#df$N_doors<- as.factor(df$N_doors)
 df$newClient<-as.factor(df$newClient)
 df$Broker <- as.factor(df$Broker)
 df$Lapse <- as.factor(df$Lapse)
