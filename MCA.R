@@ -7,15 +7,10 @@ library(factoextra)
 library(corrplot)
 library(ggcorrplot)
 library(questionr)
-
-#library(MASS)
-#detach("package:MASS")
+library(ade4)
 
 df = read.csv("preprocessedData.csv")
 
-#df$N_claims_history <- as.factor(df$N_claims_history)
-#df$N_claims_year <- as.factor(df$N_claims_year)
-#df$N_doors<- as.factor(df$N_doors)
 df$newClient<-as.factor(df$newClient)
 df$Broker <- as.factor(df$Broker)
 df$Lapse <- as.factor(df$Lapse)
@@ -44,11 +39,13 @@ df <- df_qual
 ### Starting MCA
 data=dummy(df, int=TRUE)
 data
-K <- length(names(data)) # Number of modalities (28)
-P <- dim(df)[2] # Number of variables (12)
-#cutoff = 100/K
-cutoff = 100/P
 
+# Number of modalities (28)
+K <- length(names(data))
+# Number of variables (12)
+P <- dim(df)[2] 
+
+cutoff = 100/P
 
 #Table des profils lignes
 row_profiles=data/rowSums(data)
@@ -68,29 +65,21 @@ G_c #centre de gravité
 rowSums(data)/sum(data)
 
 # MCA 
-mca2=MCA(df, ncp = 5, graph = FALSE)
+mca1=MCA(df, ncp = 5, graph = FALSE)
 mca2=MCA(df, ncp = 5, graph = FALSE, method = "Burt")
 burt = acm.burt(df, df)
-afc_burt2 = CA(burt, graph = FALSE)
-# Attraction/Repulsion -> Coord? 
 
-fviz_ca_col(afc_burt2, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
-             col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+eigenBurt = get_eigenvalue(mca2)
+eigenCDT = get_eigenvalue(mca1)
 
-fviz_screeplot(afc_burt2, ncp = 10, addlabels = TRUE, ylim = c(0, 30)) + 
-    geom_hline(yintercept=cutoff, linetype=2, color="red")
-
-get_mca_var(mca2)
-
-get_eigenvalue(mca2)
+# On vérifie que les valeurs propres en utilisent la table de Burt sont les carrées des valeurs propres de la table disjonctive complète.
+all(near(eigenBurt[,1], eigenCDT[,1]^2))
 
 get_mca_var(mca2)$coord
 get_mca_var(mca2)$cos2
 get_mca_var(mca2)$contrib
 
-cutoff = 100/K
-cutoff = 100/P
-
+# On vérifie qu'on doit garder 4 dimensions, considerant le cutoff de 1/P.
 fviz_screeplot(mca2, ncp = 8, addlabels = TRUE, ylim = c(0, 30)) + 
     geom_hline(yintercept=cutoff, linetype=2, color="red")
 
@@ -157,6 +146,7 @@ for (i in 1: dim(tdc)[2]){
 }
 distAff = round(dist,3) # Affichage ´epur´e des distances
 
+
 ### Inspect if there's any interesting relation between the qualitative variables and the Cost_claims_year variable: 
 df2 <- df %>% select(where(~ !is.numeric(.)) | "Cost_claims_year")
 df2 <- df2 %>% mutate(Cost_claims_year = quant.cut(Cost_claims_year, 4))
@@ -172,6 +162,5 @@ fviz_screeplot(mca2, ncp = 20, addlabels = TRUE, ylim = c(0, 30)) +
 
 fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
              col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
-
 
 # Nothing particularly interesting. The contribution of all the modalities of Cost_claims_year is very low to the first 2 dimensions.
