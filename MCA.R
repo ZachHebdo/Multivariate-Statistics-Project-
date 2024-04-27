@@ -24,6 +24,9 @@ df$N_claims <- as.factor(df$N_claims)
 df$Licence <- as.factor(df$Licence)
 df$Age <- as.factor(df$Age)
 
+# In case we need it in the future:
+preprocessed_df <- df
+
 #df_quant <- df %>% select(where(is.numeric))
 df_qual <- df %>% select(where(~ !is.numeric(.)))
 glimpse(df_qual)
@@ -142,7 +145,7 @@ Dist_CP_Gc <- n/npl - 1
 Dist_CP_Gc
 
 ### Inspect if there's any interesting relation between the qualitative variables and the Cost_claims_year variable: 
-df2 <- df %>% select(where(~ !is.numeric(.)) | "Cost_claims_year")
+df2 <- preprocessed_df %>% select(where(~ !is.numeric(.)) | "Cost_claims_year")
 df2 <- df2 %>% mutate(Cost_claims_year = quant.cut(Cost_claims_year, 4))
 
 K <- length(names(dummy(df2))) # Number of modalities (28)
