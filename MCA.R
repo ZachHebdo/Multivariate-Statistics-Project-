@@ -124,9 +124,6 @@ fviz_cos2(mca2, choice = "var", axes = 2)
 fviz_cos2(mca2, choice = "var", axes = 3)
 fviz_cos2(mca2, choice = "var", axes = 4)
 
-
-
-
 # Distance between modalities
 #------------------------------------
 # Table Disjonctive Complete
@@ -200,20 +197,25 @@ fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shap
 
 # Nothing particularly interesting. The contribution of all the modalities of Cost_claims_year is very low to the first 2 dimensions.
 
+# CLUSTERING 
 df2 <- preprocessed_df %>% select(where(~ !is.numeric(.)) | "Cost_claims_year")
 
 mca3=MCA(df2, ncp = 5, graph = FALSE, quanti.sup = 13)
 
-fviz_mca_var(mca3$ind$coord, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
+fviz_mca_var(mca3, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
              col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 
-d=dist(mca1$ind$coord[,1:3], method="euclidean") #matrice des distances euclidiennes
-clust=hclust(d, method="single") #clustering hiérarchique ascendant basé sur le type de lien simple
-plot(clust, labels=data$Identity) #dendogramme
-rect.hclust(clust, k=3, border="red") #supposons que l'on veuille k=3 clusters
+scores <- mca3$ind$coord[,1:3]
+d=dist(scores, method="euclidean") #matrice des distances euclidiennes
+clust=hclust(d, method="ward.D2") #clustering hiérarchique ascendant basé sur le type de lien simple
+plot(clust) #dendogramme
+rect.hclust(clust, k=2, border="red") #supposons que l'on veuille k=3 clusters
 
-groups=cutree(clust, k=3) #appartenance de chaque ménage français à l'un des trois clusters
-data_pca[groups==1,] #fournit les dépenses de chaque ménage français appartenant au groupe 1
-data_pca[groups==2,] #fournit les dépenses de chaque ménage français appartenant au groupe 2
-data_pca[groups==3,] #fournit les dépenses de chaque ménage français appartenant au groupe 3
+scores <- cbind(scores, Cost_claims_year = preprocessed_df$Cost_claims_year, Premium = preprocessed_df$Premium)
 
+groups=cutree(clust, k=2) #appartenance de chaque ménage français à l'un des trois clusters
+# scores[groups==1,] 
+# scores[groups==2,]
+
+anova(lm(as.data.frame(scores)$Cost_claims_year~groups))
+anova(lm(as.data.frame(scores)$Premium~groups))
