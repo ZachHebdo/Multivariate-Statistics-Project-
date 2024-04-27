@@ -130,16 +130,18 @@ ggplot(database, aes(x = Diesel, y = Premium)) +
   labs(x = "Type of fuel", y = "Premium") +
   ggtitle("Box Plot of Premium by the type of fuel")
 
-# Contigency table
-tableau <- table(database$Type_risk, database$N_claims)
-ggplot(data = database, aes(x = factor(Type_risk), fill = factor(N_claims))) +
-  geom_bar(position = "fill") +
-  labs(x = "Type risk", y = "Proportion", fill = "nb claims") +
-  theme_minimal() +
-  coord_flip()
-tableau
+# Correlation matrix
+cor_matrix <- cor(database_quant)
+cor_matrix
 
-cor(database_quant)
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot(cor_matrix, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black",
+         tl.col="black", tl.srt=45,
+         diag=FALSE 
+)
+
 ggpairs(database_quant)
 
 # Summary table
