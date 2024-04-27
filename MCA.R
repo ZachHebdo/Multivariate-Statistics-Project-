@@ -198,9 +198,9 @@ fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shap
 # Nothing particularly interesting. The contribution of all the modalities of Cost_claims_year is very low to the first 2 dimensions.
 
 # CLUSTERING 
-df2 <- preprocessed_df %>% select(where(~ !is.numeric(.)) | "Cost_claims_year")
+df2 <- df_qual
 
-mca3=MCA(df2, ncp = 5, graph = FALSE, quanti.sup = 13)
+mca3=MCA(df2, ncp = 5, graph = FALSE)
 
 fviz_mca_var(mca3, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
              col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
@@ -219,3 +219,35 @@ groups=cutree(clust, k=2) #appartenance de chaque ménage français à l'un des 
 
 anova(lm(as.data.frame(scores)$Cost_claims_year~groups))
 anova(lm(as.data.frame(scores)$Premium~groups))
+
+select=(groups==1|groups==2) #opérateur logique "ou"
+test=t.test(as.data.frame(scores)$Cost_claims_year[select]~groups[select])
+test
+
+test=t.test(as.data.frame(scores)$Premium[select]~groups[select])
+test
+
+scores <- mca3$ind$coord[,1:3]
+within=NULL
+for(i in 1:11) within[i]=sum(kmeans(scores,centers=i)$withinss)
+plot(1:11, within, type="b")
+#Nombre de clusters retenu : 5
+
+#Graphique du premier plan factoriel et de l'appartenance aux clusters
+clust2=kmeans(scores, 5) #k-means avec 5 clusters
+
+plot(scores, col=clust2$cluster, pch=19, cex=2)
+abline(v=0, h=0)
+
+# plot(scores[,2:3], col=clust2$cluster, pch=19, cex=2)
+# abline(v=0, h=0)
+# 
+# plot(scores[,c(1,3)], col=clust2$cluster, pch=19, cex=2)
+# abline(v=0, h=0)
+
+scatterplot3d(scores, y=NULL, z=NULL, pch = 20, color = clust2$cluster)
+
+scores <- cbind(scores, Cost_claims_year = preprocessed_df$Cost_claims_year, Premium = preprocessed_df$Premium)
+anova(lm(as.data.frame(scores)$Cost_claims_year~clust2$cluster))
+anova(lm(as.data.frame(scores)$Premium~clust2$cluster))
+
