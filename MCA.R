@@ -8,6 +8,8 @@ library(corrplot)
 library(ggcorrplot)
 library(questionr)
 library(ade4)
+library(ggrepel)
+
 
 df = read.csv("preprocessedData.csv")
 
@@ -68,7 +70,8 @@ G_c #centre de gravité
 rowSums(data)/sum(data)
 
 # MCA 
-mca1=MCA(df, ncp = 5, graph = FALSE)
+mca1=MCA(df, ncp = 28, graph = FALSE)
+
 mca2=MCA(df, ncp = 5, graph = FALSE, method = "Burt")
 burt = acm.burt(df, df)
 
@@ -85,44 +88,34 @@ all(near(eigenBurt[,1], eigenCDT[,1]^2))
 fviz_screeplot(mca1, ncp = 8, addlabels = TRUE, ylim = c(0, 30)) + 
     geom_hline(yintercept=cutoff, linetype=2, color="red")
 
-fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
+fviz_mca_var(mca1, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
              col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 
-fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 3), repel = TRUE, shape.var = 19, alpha = 0.7, 
+fviz_mca_var(mca1, geom = c("point", "text"), axes = c(1, 3), repel = TRUE, shape.var = 19, alpha = 0.7, 
              col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 
-fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 4), repel = TRUE, shape.var = 19, alpha = 0.7, 
+fviz_mca_var(mca1, geom = c("point", "text"), axes = c(1, 4), repel = TRUE, shape.var = 19, alpha = 0.7, 
              col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 
 #Coordonnées des modalités sur les axes principaux
-mca2$var$coord[,1:4]
-mca2$var$eta2[,1:4]
-mca2$var$contrib[,1:4] #Contribution des modalités à la construction des axes principaux
-mca2$var$cos2[,1:4] #Qualité de représentation des modalités sur les axes principaux
-mca2$var$v.test[,1:4] 
+mca1$var$coord[,1:3]
+mca1$var$eta2[,1:3]
+mca1$var$contrib[,1:3] #Contribution des modalités à la construction des axes principaux
+mca1$var$cos2[,1:3] #Qualité de représentation des modalités sur les axes principaux
+mca1$var$v.test[,1:3] 
 
-# First axis:
-round(mca2$var$contrib[,1], 2)
-round(mca2$var$contrib[,1]/sum(mca2$var$contrib[,1]), 2)
-
-summary(mca2)
-
-# Si on veut garder l'observations avec les nouveaux valeurs.
-qual_quant <- mca2$ind$coord
+# # First axis:
+# round(mca2$var$contrib[,1], 3)
+# round(mca2$var$contrib[,1]/sum(mca2$var$contrib[,1]), 3)
 
 # So second dimension is mainly composed of Motorcycle (vs vans) and gasoline (vs diesel), and young adult young driver
-fviz_contrib(mca2, choice = "var", axes = 1)
-fviz_contrib(mca2, choice ="var", axes = 2)
-fviz_contrib(mca2, choice ="var", axes = 3)
-fviz_contrib(mca2, choice ="var", axes = 4)
+fviz_contrib(mca1, choice = "var", axes = 1)
+fviz_contrib(mca1, choice ="var", axes = 2)
+fviz_contrib(mca1, choice ="var", axes = 3)
 
-fviz_contrib(mca2, choice ="ind", axes = 1, top = 30)
-fviz_contrib(mca2, choice ="ind", axes = 2, top = 30)
-
-fviz_cos2(mca2, choice = "var", axes = 1)
-fviz_cos2(mca2, choice = "var", axes = 2)
-fviz_cos2(mca2, choice = "var", axes = 3)
-fviz_cos2(mca2, choice = "var", axes = 4)
+fviz_cos2(mca1, choice = "var", axes = 1)
+fviz_cos2(mca1, choice = "var", axes = 2)
+fviz_cos2(mca1, choice = "var", axes = 3)
 
 # Distance between modalities
 #------------------------------------
@@ -146,6 +139,11 @@ dist_df
 Dist_CP_Gc <- n/npl - 1
 Dist_CP_Gc
 
+fviz_mca_var(mca1, choice = "mca.cor", 
+             repel = TRUE, # Avoid text overlapping (slow)
+             ggtheme = theme_minimal())
+
+#  Calculating eigenvalues manually (Just for checking)
 element <- function(df, i, j) {
     t <- (df[i, j] - npl[j]/n)/sqrt(P*npl[j])
     
@@ -197,7 +195,8 @@ fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shap
 
 # Nothing particularly interesting. The contribution of all the modalities of Cost_claims_year is very low to the first 2 dimensions.
 
-# CLUSTERING 
+################################################################################
+# CLUSTERING SUR LES SCORES DU MCA
 df2 <- df_qual
 
 mca3=MCA(df2, ncp = 5, graph = FALSE)
@@ -250,4 +249,38 @@ scatterplot3d(scores, y=NULL, z=NULL, pch = 20, color = clust2$cluster)
 scores <- cbind(scores, Cost_claims_year = preprocessed_df$Cost_claims_year, Premium = preprocessed_df$Premium)
 anova(lm(as.data.frame(scores)$Cost_claims_year~clust2$cluster))
 anova(lm(as.data.frame(scores)$Premium~clust2$cluster))
+
+# Last plot:
+fviz_mca_biplot(mca3, label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
+fviz_mca_biplot(mca3, axes = c(1, 3), label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
+
+# #function to visualize the correlation circle 
+# corr_circle = function(x, y) {
+#     # Create a data frame from the vectors
+#     dftest = data.frame(PCx = x, PCy = y, Labels = colnames(df_qual))
+#     
+#     # Determine the names for the PC axes dynamically based on input
+#     x_name = deparse(substitute(x))
+#     y_name = deparse(substitute(y))
+#     
+#     # Create the ggplot object
+#     p = ggplot(dftest, aes(x = PCx, y = PCy)) +
+#         geom_hline(yintercept = 0) +
+#         geom_vline(xintercept = 0) +
+#         geom_point() +
+#         geom_text_repel(aes(label = Labels)) +
+#         annotate("path", x = cos(seq(0, 2 * pi, length.out = 100)), 
+#                  y = sin(seq(0, 2 * pi, length.out = 100)), colour = "black") +
+#         coord_fixed(ratio = 1) +
+#         xlim(-1, 1) +
+#         ylim(-1, 1) +
+#         labs(x = x_name, y = y_name) +
+#         theme_minimal()
+#     
+#     # Return the plot
+#     return(p)
+# }
+
+# cor <- sqrt(mca1$var$eta2)
+# corr_circle(cor[,1], cor[,2])
 
