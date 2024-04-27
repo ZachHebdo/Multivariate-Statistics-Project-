@@ -239,7 +239,9 @@ plot_pca_circle(cor_rob2, cor_rob3)
 plot_pca_circle(cor_rob1, cor_rob3)
 
 #calculating scores 
+PCA_robust$vectors[,1] = -1 * PCA_robust$vectors[,1]
 PCA_robust$vectors[,2] = -1 * PCA_robust$vectors[,2]
+
 scores_robust = scale(df_quant) %*% PCA_robust$vectors 
 
 ### IDEA: Keep three principal components, to have a decent amount of variance explained. 
