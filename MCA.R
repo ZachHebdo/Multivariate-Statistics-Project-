@@ -72,6 +72,9 @@ mca1=MCA(df, ncp = 5, graph = FALSE)
 mca2=MCA(df, ncp = 5, graph = FALSE, method = "Burt")
 burt = acm.burt(df, df)
 
+# Verifying that the Burt table is equal to XtX.
+all(t(as.matrix(data)) %*% as.matrix(data) == burt)
+
 eigenBurt = get_eigenvalue(mca2)
 eigenCDT = get_eigenvalue(mca1)
 
@@ -79,7 +82,7 @@ eigenCDT = get_eigenvalue(mca1)
 all(near(eigenBurt[,1], eigenCDT[,1]^2))
 
 # On vérifie qu'on doit garder 4 dimensions, considerant le cutoff de 1/P.
-fviz_screeplot(mca2, ncp = 8, addlabels = TRUE, ylim = c(0, 30)) + 
+fviz_screeplot(mca1, ncp = 8, addlabels = TRUE, ylim = c(0, 30)) + 
     geom_hline(yintercept=cutoff, linetype=2, color="red")
 
 fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
@@ -122,6 +125,8 @@ fviz_cos2(mca2, choice = "var", axes = 3)
 fviz_cos2(mca2, choice = "var", axes = 4)
 
 
+
+
 # Distance between modalities
 #------------------------------------
 # Table Disjonctive Complete
@@ -129,13 +134,13 @@ CDT = acm.disjonctif(df)
 
 npl <- colSums(CDT)         # same as: apply(CDT, 2, sum)
 
-dist <- function(mod1, mod2) {
+Mod_dist <- function(mod1, mod2) {
     (n*sum((CDT[,mod1]/npl[mod1] - CDT[,mod2]/npl[mod2])^2))^0.5
 }
 dist_df <- data.frame(row.names = (names(CDT)))
 for (i in 1:dim(CDT)[2]) {
     for (j in i:dim(CDT)[2]) {
-        dist_df[names(CDT)[i], names(CDT)[j]] <- round(dist(i, j), 2)
+        dist_df[names(CDT)[i], names(CDT)[j]] <- round(Mod_dist(i, j), 2)
     }
 }
 dist_df <- dist_df %>% replace(is.na(.), " ")
@@ -143,6 +148,39 @@ dist_df
 
 Dist_CP_Gc <- n/npl - 1
 Dist_CP_Gc
+
+element <- function(df, i, j) {
+    t <- (df[i, j] - npl[j]/n)/sqrt(P*npl[j])
+    
+    return(t)
+}
+
+T <- matrix(nrow = dim(CDT)[1], ncol = dim(CDT)[2])
+for (i in 1:dim(CDT)[1]) {
+    for (j in 1:dim(CDT)[2]) {
+        T[i, j] <- element(CDT, i, j)        
+    }
+}
+
+V <- t(T) %*% T
+W <- T %*% t(T)
+
+eigenV <- eigen(V)
+# eigenW <- eigen(W)
+
+round(eigenV$values/sum(eigenV$values), 3)
+all(near(eigenV$vectors %*% diag(eigenV$values) %*% t(eigenV$vectors), V))
+
+# Verifying that the eigenvalues are correctly calculated for all K-P relevant dimensions. Thus, T is correctly calculated as well.
+all(near(eigenV$values[1:(K-P)], mca1$eig[1:(K-P),1]))
+
+mca1$ind$coord[,1:3]
+
+PC1 <- as.matrix(row_profiles) %*% eigenV$vectors
+PC2 <- as.matrix(column_profiles) %*% eigenV$vectors
+
+pca=princomp(W, cor=FALSE)
+pca$scores
 
 ### Inspect if there's any interesting relation between the qualitative variables and the Cost_claims_year variable: 
 df2 <- preprocessed_df %>% select(where(~ !is.numeric(.)) | "Cost_claims_year")
@@ -161,3 +199,21 @@ fviz_mca_var(mca2, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shap
              col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 
 # Nothing particularly interesting. The contribution of all the modalities of Cost_claims_year is very low to the first 2 dimensions.
+
+df2 <- preprocessed_df %>% select(where(~ !is.numeric(.)) | "Cost_claims_year")
+
+mca3=MCA(df2, ncp = 5, graph = FALSE, quanti.sup = 13)
+
+fviz_mca_var(mca3$ind$coord, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
+             col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+
+d=dist(mca1$ind$coord[,1:3], method="euclidean") #matrice des distances euclidiennes
+clust=hclust(d, method="single") #clustering hiérarchique ascendant basé sur le type de lien simple
+plot(clust, labels=data$Identity) #dendogramme
+rect.hclust(clust, k=3, border="red") #supposons que l'on veuille k=3 clusters
+
+groups=cutree(clust, k=3) #appartenance de chaque ménage français à l'un des trois clusters
+data_pca[groups==1,] #fournit les dépenses de chaque ménage français appartenant au groupe 1
+data_pca[groups==2,] #fournit les dépenses de chaque ménage français appartenant au groupe 2
+data_pca[groups==3,] #fournit les dépenses de chaque ménage français appartenant au groupe 3
+
