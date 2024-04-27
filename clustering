@@ -240,17 +240,36 @@ plot(2:10, calinski_values, type = "b",
 
 sim <- cluster.Sim(df,p =7, minClusterNo = 2, maxClusterNo = 10, icq = "S") # le S est la methode d'aggregation single, on peut evidemment mettre ward ou une autre 
 print(sim)
+#Clustering spectral 
+set.seed(123)
+k <- 4
+
+# Matrice de similarité
+similarity_matrix <- exp(-dist(df)^2)
+
+# Decompo spectrale
+vp <- eigen(similarity_matrix)
+
+# Extraction du top k des vp
+k_vp <- vp$vectors[, 1:k]
+
+# K means sur les vp
+cluster_assignments <- kmeans(k_vp, centers = k)$cluster
+
+# Graphique 
+plot(df, col = clusters, pch = 19, 
+     main = "Spectral Clustering avec k-means")
 
 Topologie de kohonen simple mais on peut sortir le mot "reseau de neurones" aux solvaysiens#########################################################################################
 # Normalisation des données
-scaled_data <- scale(df)
+scaled_df <- scale(df)
 
 # Création du réseau de Kohonen
 set.seed(123)  # Pour la reproductibilité
 kohonen_network <- somgrid(xdim = 5, ydim = 5, topo = "hexagonal")
 
 # Entrainement du réseau
-kohonen_model <- som(scaled_data, grid = kohonen_network, rlen = 10000)
+kohonen_model <- som(scaled_df, grid = kohonen_network, rlen = 10000) # j'ai mis 10 000 mais je n'ai pas le temps de l'optimiser
 
 # Affichage des neurones
 plot(kohonen_model)
