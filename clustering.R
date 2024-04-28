@@ -30,6 +30,7 @@ df$Type_risk <- as.factor(df$Type_risk)
 
 df <- subset(df, select = -Policies_in_force)
 df_quant <- df %>% select(where(is.numeric))
+df_quant <- scale(df_quant)
 df_qual <- df %>% select(where(~ !is.numeric(.)))
 
 ##HCA variables qualitatives
