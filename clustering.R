@@ -2,6 +2,8 @@ install.packages("cluster")
 install.packages("factoextra")
 install.packages("clValid")
 install.packages("clusterSim")
+install.packages("vcd")
+library(vcd)
 library(factoextra)
 library(ggplot2)
 library(dbscan)
@@ -9,6 +11,104 @@ library(fpc)
 library(cluster)
 library(clValid)  
 library(clusterSim)
+
+df <- read.csv("preprocessedData.csv")
+View(df)
+
+df$N_claims_history <- as.factor(df$N_claims_history)
+df$N_claims_year <- as.factor(df$N_claims_year)
+df$Policies_in_force <- as.factor(df$Policies_in_force)
+df$newClient<-as.factor(df$newClient)
+df$Broker <- as.factor(df$Broker)
+df$Lapse <- as.factor(df$Lapse)
+df$Policies<- as.factor(df$Policies)
+df$Urban <- as.factor(df$Urban)
+df$Diesel <- as.factor(df$Diesel)
+df$Payment <- as.factor(df$Payment)
+df$Second_driver <- as.factor(df$Second_driver)
+df$Type_risk <- as.factor(df$Type_risk)
+
+df <- subset(df, select = -Policies_in_force)
+df_quant <- df %>% select(where(is.numeric))
+df_qual <- df %>% select(where(~ !is.numeric(.)))
+
+##HCA variables qualitatives
+# Calcul de la matrice de dissimilarité avec la distance de Chi-square
+chi_square_dist  <- daisy(df_qual, metric = "gower")
+# Application de la classification hiérarchique
+hc_qual <- hclust(as.dist(chi_square_dist), method = "ward.D2")
+# Visualiser le dendrogramme
+plot(hc_qual)
+rect.hclust(hc_qual, k=5, border="red")
+
+#Création des groupes
+groups=cutree(hc_qual, k=5) 
+df_qual[groups==1,] 
+df_qual[groups==2,] 
+df_qual[groups==3,]
+df_qual[groups==4,]
+df_qual[groups==5,]
+
+#Faire les test chi carrés pour les différentes variables dans les différents groupes
+# Liste des noms des variables qualitatives dans votre dataframe df_qual
+qualitative_vars <- names(df_qual)[sapply(df_qual, is.factor)]
+
+# Initialisation d'une liste pour stocker les résultats des tests
+chi_results <- list()
+
+# Boucle à travers chaque variable qualitative
+for (var in qualitative_vars) {
+  # Création du tableau de contingence
+  contingency_table <- table(df_qual[[var]], groups)
+  
+  # Test du chi-deux d'indépendance
+  chi_test <- chisq.test(contingency_table)
+  
+  # Stockage des résultats dans la liste
+  chi_results[[var]] <- chi_test
+}
+
+# Affichage des résultats pour chaque variable
+for (var in qualitative_vars) {
+  cat("Résultats pour la variable", var, ":\n")
+  print(chi_results[[var]])
+  cat("\n")
+}
+
+#Kmeans varariables qualitative sur toute la db
+
+within=NULL
+ for(i in 1:11)
+   within[i]=sum(kmeans(gower_dist, centers = i)$withinss)
+plot(1:11, within, type="b")
+
+# Calculer la distance de Gower
+gower_dist <- daisy(df_qual, metric = "gower")
+
+# Appliquer l'algorithme K-means
+kmeans_clusters <- kmeans(gower_dist, centers = 5)
+
+# Afficher les résultats
+print(kmeans_clusters)
+
+for(variable in names(df_qual)) {
+  plot(df_qual[[variable]], col = kmeans_clusters$cluster, pch = 19,        main = paste("Nuage de points de", variable, "avec clusters"))
+  legend("topright", legend = unique(kmeans_clusters$cluster), col = unique(kmeans_clusters$cluster), pch = 19, title = "Cluster")
+  }
+
+# Description de chaque cluster
+cluster_labels <- kmeans_clusters$cluster
+
+df_qual$cluster <- factor(cluster_labels)
+
+# Créer un nouveau dataframe avec les étiquettes de cluster
+clustered_df <- cbind(df_qual, cluster = factor(cluster_labels))
+
+# Appliquer la fonction aggregate pour calculer les statistiques descriptives par cluster
+summary_by_cluster <- aggregate(. ~ cluster, data = clustered_df, FUN = summary)
+
+# Afficher les statistiques descriptives pour chaque variable dans chaque cluster
+print(summary_by_cluster)
 
 #Methode algorithmique densité (density based spatial clustering of application with noise) 
 
