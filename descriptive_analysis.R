@@ -66,6 +66,20 @@ ggplot(database, aes(x = Cost_claims_year)) +
   ggtitle("Histogram and Density Plot (Zoomed)") +
   scale_x_continuous(limits = c(min, max)) 
 
+logcost <- log(database$Cost_claims_year)
+ggplot(database, aes(x = logcost)) +
+  geom_histogram(fill = "blue", color = "black") +  
+  labs(x = "Total cost of claims", y = "Frequency") +  
+  ggtitle("Histogram of Cost of claims")
+
+ggplot(database, aes(x = logcost)) +
+  geom_histogram(aes(y = ..density..),fill = "lightblue", color = "blue") +
+  geom_density(kernel = "gaussian", alpha = 0.5,col = "red", fill = NA) +
+  labs(x = "Logarithm of Total Cost of Claims", y = "Density") +
+  ggtitle("Histogram and Density Plot")
+
+hist(logcost)
+hist(database$Cost_claims_year)
 # Type risks
 risk_summary <- create_summary_table(database, "Type_risk")
 risk_summary
