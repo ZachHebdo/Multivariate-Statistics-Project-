@@ -38,17 +38,39 @@ df_qual <- df %>% select(where(~ !is.numeric(.)))
 chi_square_dist  <- daisy(df_qual, metric = "gower")
 # Application de la classification hiérarchique
 hc_qual <- hclust(as.dist(chi_square_dist), method = "ward.D2")
+#optimal number of clusters
+# Créer une liste pour stocker les indices silhouette
+silhouette_values <- numeric(0)
+# Nombre de coupures à tester
+max_k <- 20
+
+# Boucle à travers différentes valeurs de coupure
+for (k in 2:max_k) {
+  # Découper le dendrogramme pour obtenir les clusters
+  clusters_qual <- cutree(hc_qual, k = k)
+  
+  # Calculer l'indice silhouette pour les clusters obtenus
+  silhouette <- silhouette(clusters_qual, chi_square_dist)
+  
+  # Calculer l'indice silhouette moyen
+  avg_silhouette <- mean(silhouette[, "sil_width"])
+  # Stocker l'indice silhouette moyen
+  silhouette_values <- c(silhouette_values, avg_silhouette)
+print(avg_silhouette)
+}
+
 # Visualiser le dendrogramme
 plot(hc_qual)
-rect.hclust(hc_qual, k=5, border="red")
+rect.hclust(hc_qual, k=6, border="red")
 
 #Création des groupes
-groups=cutree(hc_qual, k=5) 
+groups=cutree(hc_qual, k=6) 
 df_qual[groups==1,] 
 df_qual[groups==2,] 
 df_qual[groups==3,]
 df_qual[groups==4,]
 df_qual[groups==5,]
+df_qual[groups==6,]
 
 #Faire les test chi carrés pour les différentes variables dans les différents groupes
 
