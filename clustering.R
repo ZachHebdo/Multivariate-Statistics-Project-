@@ -50,43 +50,44 @@ df_qual[groups==4,]
 df_qual[groups==5,]
 
 #Faire les test chi carrés pour les différentes variables dans les différents groupes
-# Liste des noms des variables qualitatives dans votre dataframe df_qual
-qualitative_vars <- names(df_qual)[sapply(df_qual, is.factor)]
 
-# Initialisation d'une liste pour stocker les résultats des tests
-chi_results <- list()
+# Initialisation d'un dataframe pour stocker les résultats
+chi_results_df <- data.frame(Variable = character(),
+                             Test_statistic = numeric(),
+                             P_value = numeric(),
+                             stringsAsFactors = FALSE)
 
-# Boucle à travers chaque variable qualitative
-for (var in qualitative_vars) {
-  # Création du tableau de contingence
+for (i in seq_along(qualitative_vars)) {
+  var <- qualitative_vars[i]
+  
   contingency_table <- table(df_qual[[var]], groups)
   
   # Test du chi-deux d'indépendance
   chi_test <- chisq.test(contingency_table)
   
-  # Stockage des résultats dans la liste
-  chi_results[[var]] <- chi_test
+  chi_results_df <- rbind(chi_results_df, data.frame(Variable = var,
+                                                     Test_statistic = chi_test$statistic,
+                                                     P_value = chi_test$p.value))
 }
 
-# Affichage des résultats pour chaque variable
-for (var in qualitative_vars) {
-  cat("Résultats pour la variable", var, ":\n")
-  print(chi_results[[var]])
-  cat("\n")
-}
+table_plot <- kable(chi_results_df, format = "html", caption = "Résultats du test du chi-deux") %>%
+  kable_styling("striped")
+
+print(table_plot)
+
 
 ###########  Kmeans varariables qualitative sur toute la db
 
 within=NULL
- for(i in 1:11)
-   within[i]=sum(kmeans(gower_dist, centers = i)$withinss)
+for(i in 1:11)
+  within[i]=sum(kmeans(chi_square_dist, centers = i)$withinss)
 plot(1:11, within, type="b")
 
 # Calculer la distance de Gower
 gower_dist <- daisy(df_qual, metric = "gower")
 
 # Appliquer l'algorithme K-means
-kmeans_clusters <- kmeans(gower_dist, centers = 5)
+kmeans_clusters <- kmeans(chi_square_dist, centers = 3)
 
 # Afficher les résultats
 print(kmeans_clusters)
@@ -94,11 +95,12 @@ print(kmeans_clusters)
 for(variable in names(df_qual)) {
   plot(df_qual[[variable]], col = kmeans_clusters$cluster, pch = 19,        main = paste("Nuage de points de", variable, "avec clusters"))
   legend("topright", legend = unique(kmeans_clusters$cluster), col = unique(kmeans_clusters$cluster), pch = 19, title = "Cluster")
-  }
+}
 
-# Description de chaque cluster
+# Identifier les observations appartenant à chaque cluster
 cluster_labels <- kmeans_clusters$cluster
 
+# Ajouter les étiquettes de cluster à votre dataframe
 df_qual$cluster <- factor(cluster_labels)
 
 # Créer un nouveau dataframe avec les étiquettes de cluster
@@ -110,23 +112,36 @@ summary_by_cluster <- aggregate(. ~ cluster, data = clustered_df, FUN = summary)
 # Afficher les statistiques descriptives pour chaque variable dans chaque cluster
 print(summary_by_cluster)
 
-
 HCA variables quantitatives sur toute la DB#################################################
  #Trouver le nombre de coupures idéal
 
+
+
+
+# Calculer la matrice de distances
 d <- dist(df_quant, method = "euclidean")
+
+# Effectuer le clustering hiérarchique
 clust <- hclust(d, method = "ward.D2")
+
+# Créer une liste pour stocker les indices silhouette
 silhouette_values <- numeric(0)
+
+# Nombre de coupures à tester
 max_k <- 20
 
+# Boucle à travers différentes valeurs de coupure
 for (k in 2:max_k) {
+  # Découper le dendrogramme pour obtenir les clusters
   clusters <- cutree(clust, k = k)
   
   # Calculer l'indice silhouette pour les clusters obtenus
   silhouette <- silhouette(clusters, d)
   
+  # Calculer l'indice silhouette moyen
   avg_silhouette <- mean(silhouette[, "sil_width"])
   
+  # Stocker l'indice silhouette moyen
   silhouette_values <- c(silhouette_values, avg_silhouette)
 }
 
@@ -136,28 +151,34 @@ optimal_k <- which.max(silhouette_values) + 1
 # Afficher le nombre optimal de coupures
 print(paste("Nombre optimal de coupures (selon l'indice silhouette) :", optimal_k))
 
-# Graphiques
+# Tracer le graphique de l'indice silhouette moyen en fonction du nombre de coupures
 plot(2:max_k, silhouette_values, type = "b", 
      main = "Indice silhouette en fonction du nombre de coupures", 
      xlab = "Nombre de coupures", ylab = "Indice silhouette moyen")
+
+# Ajouter une ligne verticale pour indiquer le nombre optimal de coupures
 abline(v = optimal_k, col = "red", lty = 2)
 
-#Realiser le HCA avec le cutree optimal
-d <- dist(df_quant, method="euclidean")
-clust <- hclust(d, method="ward.D2")
-clusters <- cutree(clust, h = optimal_k)
-plot(clust)
-rect.hclust(clust, k=optimal_k, border="red")
+#clustering
+
+d_quant <- dist(df_quant, method="euclidean")
+hc_quant <- hclust(d_quant, method="ward.D2")
+clusters_quant <- cutree(hc_quant, h = 3)
+plot(hc_quant)
+rect.hclust(hc_quant, k=3, border="red")
 
 #Création des groupes
-groups_quant=cutree(hc_quant, k=optimal_k) 
+groups_quant=cutree(hc_quant, k=3) 
 df_quant[groups_quant==1,] 
 df_quant[groups_quant==2,] 
+df_quant[groups_quant==3,] 
 
-#Boxplot analysis
+
+
 for(variable in names(df_quant)){
   boxplot(df_quant[[variable]] ~ groups_quant, main = paste('Boxplot of', variable, 'for each cluster'))
 }
+
 #Test Anova pour les moyennes de la variable Meat dans les différents clusters
 
 # Initialiser une liste pour stocker les résultats des ANOVA
@@ -179,50 +200,54 @@ for (variable in names(df_quant)) {
 print(anova_results)
 
 #Test de Student
-
+# Initialiser une liste pour stocker les résultats des tests t
 t_test_results <- list()
+
+# Nombre total de groupes
 num_groups <- max(groups_quant)
 
-#  résultats des tests t pour chaque paire de groupes
+# Initialiser une matrice pour stocker les résultats des tests t pour chaque paire de groupes
 diff_matrix <- matrix("", nrow = length(names(df_quant)), ncol = num_groups,
                       dimnames = list(names(df_quant), paste0("G", 1:num_groups)))
 
-# Boucle chaque variable
+# Boucle à travers chaque variable
 for (variable in names(df_quant)) {
-  # Matrice résultats des tests t pour chaque paire de groupes
+  # Initialiser une matrice pour stocker les résultats des tests t pour chaque paire de groupes
   t_test_matrix <- matrix("", nrow = num_groups, ncol = num_groups)
   
   # Effectuer un test t de Student pour chaque paire de groupes
   for (i in 1:num_groups) {
-  for (j in 1:num_groups) {
-  # Éviter de comparer un groupe avec lui-même
+    for (j in 1:num_groups) {
+      # Éviter de comparer un groupe avec lui-même
       if (i != j) {
-  # Sélectionner les données correspondant aux groupes i et j
+        # Sélectionner les données correspondant aux groupes i et j
         select <- (groups_quant == i | groups_quant == j)
         
-  # Effectuer le test t de Student
+        # Effectuer le test t de Student
         test <- t.test(df_quant[select, variable] ~ groups_quant[select])
         
-  # Stocker le résultat du test t dans la matrice
+        # Stocker le résultat du test t dans la matrice
         if (test$p.value < 0.05) {
-          t_test_matrix[i, j] <- "1"  # interprétation : ifférence significative
+          t_test_matrix[i, j] <- "1"  # Différence significative
           diff_matrix[variable, j] <- "1"
         } else {
-          t_test_matrix[i, j] <- "0"  # interprétationpas de différence significative
+          t_test_matrix[i, j] <- "0"  # Pas de différence significative
         }
       } else {
-        # Laisser la valeur sur la diagonale comme NA pcq test avec lui même
+        # Laisser la valeur sur la diagonale comme NA
         t_test_matrix[i, j] <- ""
       }
     }
   }
   
-#  matrice des résultats des tests t pour la variable dans la liste
+  # Stocker la matrice des résultats des tests t pour la variable dans la liste
   t_test_results[[variable]] <- t_test_matrix
 }
 
-# matrice des différences
+# Afficher la matrice des différences
 print(diff_matrix)
+print(t_test_results)
+
 
 K means variable quantitative sur toute la DB##################################################
 
