@@ -75,7 +75,7 @@ for (var in qualitative_vars) {
   cat("\n")
 }
 
-#Kmeans varariables qualitative sur toute la db
+###########  Kmeans varariables qualitative sur toute la db
 
 within=NULL
  for(i in 1:11)
