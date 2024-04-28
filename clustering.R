@@ -110,7 +110,122 @@ summary_by_cluster <- aggregate(. ~ cluster, data = clustered_df, FUN = summary)
 # Afficher les statistiques descriptives pour chaque variable dans chaque cluster
 print(summary_by_cluster)
 
-#Methode algorithmique densité (density based spatial clustering of application with noise) 
+
+HCA variables quantitatives sur toute la DB#################################################
+ #Trouver le nombre de coupures idéal
+
+d <- dist(df_quant, method = "euclidean")
+clust <- hclust(d, method = "ward.D2")
+silhouette_values <- numeric(0)
+max_k <- 20
+
+for (k in 2:max_k) {
+  clusters <- cutree(clust, k = k)
+  
+  # Calculer l'indice silhouette pour les clusters obtenus
+  silhouette <- silhouette(clusters, d)
+  
+  avg_silhouette <- mean(silhouette[, "sil_width"])
+  
+  silhouette_values <- c(silhouette_values, avg_silhouette)
+}
+
+# Trouver le nombre optimal de coupures qui maximise l'indice silhouette moyen
+optimal_k <- which.max(silhouette_values) + 1
+
+# Afficher le nombre optimal de coupures
+print(paste("Nombre optimal de coupures (selon l'indice silhouette) :", optimal_k))
+
+# Graphiques
+plot(2:max_k, silhouette_values, type = "b", 
+     main = "Indice silhouette en fonction du nombre de coupures", 
+     xlab = "Nombre de coupures", ylab = "Indice silhouette moyen")
+abline(v = optimal_k, col = "red", lty = 2)
+
+#Realiser le HCA avec le cutree optimal
+d <- dist(df_quant, method="euclidean")
+clust <- hclust(d, method="ward.D2")
+clusters <- cutree(clust, h = optimal_k)
+plot(clust)
+rect.hclust(hc, k=optimal_k, border="red")
+
+#Création des groupes
+groups_quant=cutree(hc_quant, k=optimal_k) 
+df_quant[groups_quant==1,] 
+df_quant[groups_quant==2,] 
+
+#Boxplot analysis
+for(variable in names(df_quant)){
+  boxplot(df_quant[[variable]] ~ groups_quant, main = paste('Boxplot of', variable, 'for each cluster'))
+}
+#Test Anova pour les moyennes de la variable Meat dans les différents clusters
+
+# Initialiser une liste pour stocker les résultats des ANOVA
+anova_results <- list()
+
+# Boucle à travers chaque variable de df_quant
+for (variable in names(df_quant)) {
+  # Construire la formule pour la régression linéaire
+  formula <- as.formula(paste(variable, "~ groups_quant"))
+  
+  # Effectuer l'ANOVA
+  anova_result <- anova(lm(formula, data = df_quant))
+  
+  # Stocker le résultat de l'ANOVA dans la liste
+  anova_results[[variable]] <- anova_result
+}
+
+# Afficher les résultats
+print(anova_results)
+
+#Test de Student
+
+t_test_results <- list()
+num_groups <- max(groups_quant)
+
+#  résultats des tests t pour chaque paire de groupes
+diff_matrix <- matrix("", nrow = length(names(df_quant)), ncol = num_groups,
+                      dimnames = list(names(df_quant), paste0("G", 1:num_groups)))
+
+# Boucle chaque variable
+for (variable in names(df_quant)) {
+  # Matrice résultats des tests t pour chaque paire de groupes
+  t_test_matrix <- matrix("", nrow = num_groups, ncol = num_groups)
+  
+  # Effectuer un test t de Student pour chaque paire de groupes
+  for (i in 1:num_groups) {
+  for (j in 1:num_groups) {
+  # Éviter de comparer un groupe avec lui-même
+      if (i != j) {
+  # Sélectionner les données correspondant aux groupes i et j
+        select <- (groups_quant == i | groups_quant == j)
+        
+  # Effectuer le test t de Student
+        test <- t.test(df_quant[select, variable] ~ groups_quant[select])
+        
+  # Stocker le résultat du test t dans la matrice
+        if (test$p.value < 0.05) {
+          t_test_matrix[i, j] <- "1"  # Différence significative
+          diff_matrix[variable, j] <- "1"
+        } else {
+          t_test_matrix[i, j] <- "0"  # Pas de différence significative
+        }
+      } else {
+        # Laisser la valeur sur la diagonale comme NA
+        t_test_matrix[i, j] <- ""
+      }
+    }
+  }
+  
+# Stocker la matrice des résultats des tests t pour la variable dans la liste
+  t_test_results[[variable]] <- t_test_matrix
+}
+
+# Afficher la matrice des différences
+print(diff_matrix)
+
+
+####################################Methode algorithmique densité (density based spatial clustering of application with noise) 
 
 df <-  # Définition de la base de donnée (ACP,ACM) avec comme variables les composantes et le score
 qplot(df$x,df$y,shape = as.factor())
