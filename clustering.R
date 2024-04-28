@@ -113,10 +113,6 @@ summary_by_cluster <- aggregate(. ~ cluster, data = clustered_df, FUN = summary)
 print(summary_by_cluster)
 
 HCA variables quantitatives sur toute la DB#################################################
- #Trouver le nombre de coupures idéal
-
-
-
 
 # Calculer la matrice de distances
 d <- dist(df_quant, method = "euclidean")
@@ -256,7 +252,7 @@ for(i in 1:11)
   within[i]=sum(kmeans(df_quant,centers=i)$withinss)
 plot(1:11, within, type="b")
 
-clust2=kmeans(df_quant, centers=5)
+clust2=kmeans(df_quant, centers=3) 
 plot(df_quant, col=clust2$cluster, pch=19, cex=2)
 abline(h=0, v=0)
 legend("topright", legend = unique(clust2$cluster), col = unique(clust2$cluster), pch = 19, title = "Cluster")
