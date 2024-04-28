@@ -58,11 +58,13 @@ chi_results_df <- data.frame(Variable = character(),
                              P_value = numeric(),
                              stringsAsFactors = FALSE)
 
+qualitative_vars <- names(df_qual)[sapply(df_qual, is.factor)]
+
 for (i in seq_along(qualitative_vars)) {
   var <- qualitative_vars[i]
   
   contingency_table <- table(df_qual[[var]], groups)
-  
+  expected_table <- chi_test$expected
   # Test du chi-deux d'indépendance
   chi_test <- chisq.test(contingency_table)
   
