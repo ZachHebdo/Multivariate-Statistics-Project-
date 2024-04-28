@@ -147,7 +147,7 @@ d <- dist(df_quant, method="euclidean")
 clust <- hclust(d, method="ward.D2")
 clusters <- cutree(clust, h = optimal_k)
 plot(clust)
-rect.hclust(hc, k=optimal_k, border="red")
+rect.hclust(clust, k=optimal_k, border="red")
 
 #Création des groupes
 groups_quant=cutree(hc_quant, k=optimal_k) 
@@ -205,25 +205,36 @@ for (variable in names(df_quant)) {
         
   # Stocker le résultat du test t dans la matrice
         if (test$p.value < 0.05) {
-          t_test_matrix[i, j] <- "1"  # Différence significative
+          t_test_matrix[i, j] <- "1"  # interprétation : ifférence significative
           diff_matrix[variable, j] <- "1"
         } else {
-          t_test_matrix[i, j] <- "0"  # Pas de différence significative
+          t_test_matrix[i, j] <- "0"  # interprétationpas de différence significative
         }
       } else {
-        # Laisser la valeur sur la diagonale comme NA
+        # Laisser la valeur sur la diagonale comme NA pcq test avec lui même
         t_test_matrix[i, j] <- ""
       }
     }
   }
   
-# Stocker la matrice des résultats des tests t pour la variable dans la liste
+#  matrice des résultats des tests t pour la variable dans la liste
   t_test_results[[variable]] <- t_test_matrix
 }
 
-# Afficher la matrice des différences
+# matrice des différences
 print(diff_matrix)
 
+K means variable quantitative sur toute la DB##################################################
+
+within=NULL
+for(i in 1:11)
+  within[i]=sum(kmeans(df_quant,centers=i)$withinss)
+plot(1:11, within, type="b")
+
+clust2=kmeans(df_quant, centers=5)
+plot(df_quant, col=clust2$cluster, pch=19, cex=2)
+abline(h=0, v=0)
+legend("topright", legend = unique(clust2$cluster), col = unique(clust2$cluster), pch = 19, title = "Cluster")
 
 ####################################Methode algorithmique densité (density based spatial clustering of application with noise) 
 
