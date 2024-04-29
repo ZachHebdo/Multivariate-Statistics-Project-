@@ -3,6 +3,8 @@ install.packages("factoextra")
 install.packages("clValid")
 install.packages("clusterSim")
 install.packages("vcd")
+install.packages("multcomp")
+install.packages("NbClust")
 library(vcd)
 library(factoextra)
 library(ggplot2)
@@ -11,9 +13,26 @@ library(fpc)
 library(cluster)
 library(clValid)  
 library(clusterSim)
+library(cluster)
+library(dplyr)
+library(GDAtools)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(tidyverse)
+library(FactoMineR)
+library(factoextra)
+library(questionr)
+library(ade4)
+library(ggrepel)
+library(scatterplot3d)
+library(NbClust)
+library(GDAtools)
+library(cluster)
+library(multcomp)
 
-df <- read.csv("preprocessedData.csv")
-View(df)
+df <- read.csv("C:/Users/denis/Downloads/preprocessedData.csv", sep=",")
 
 df$N_claims_history <- as.factor(df$N_claims_history)
 df$N_claims_year <- as.factor(df$N_claims_year)
@@ -30,22 +49,32 @@ df$Type_risk <- as.factor(df$Type_risk)
 
 df <- subset(df, select = -Policies_in_force)
 df_quant <- df %>% select(where(is.numeric))
-df_quant <- scale(df_quant)
 df_qual <- df %>% select(where(~ !is.numeric(.)))
 
-##HCA variables qualitatives
+
+
+
+HCA variables qualitatives###############################################################"
 # Calcul de la matrice de dissimilarité avec la distance de Chi-square
 chi_square_dist  <- daisy(df_qual, metric = "gower")
 # Application de la classification hiérarchique
 hc_qual <- hclust(as.dist(chi_square_dist), method = "ward.D2")
-#optimal number of clusters
+# Visualiser le dendrogramme
+plot(hc_qual)
+rect.hclust(hc_qual, k=5, border="red")
+legend("topright", legend = "Dendrogramme HCA ascendant",
+       bty = "n", cex = 0.8)
+
+
 # Créer une liste pour stocker les indices silhouette
 silhouette_values <- numeric(0)
+silhouette <- numeric(0)
+sill <- numeric(0)
 # Nombre de coupures à tester
-max_k <- 20
-
+max_k <- 100
+avg_sil <- vector()
 # Boucle à travers différentes valeurs de coupure
-for (k in 2:max_k) {
+for (k in 1:max_k) {
   # Découper le dendrogramme pour obtenir les clusters
   clusters_qual <- cutree(hc_qual, k = k)
   
@@ -54,14 +83,18 @@ for (k in 2:max_k) {
   
   # Calculer l'indice silhouette moyen
   avg_silhouette <- mean(silhouette[, "sil_width"])
+  sill[k] <- avg_silhouette
   # Stocker l'indice silhouette moyen
   silhouette_values <- c(silhouette_values, avg_silhouette)
-print(avg_silhouette)
+  avg_sil[k] <- avg_silhouette
 }
 
-# Visualiser le dendrogramme
+
+
 plot(hc_qual)
 rect.hclust(hc_qual, k=6, border="red")
+
+
 
 #Création des groupes
 groups=cutree(hc_qual, k=6) 
@@ -70,24 +103,43 @@ df_qual[groups==2,]
 df_qual[groups==3,]
 df_qual[groups==4,]
 df_qual[groups==5,]
-df_qual[groups==6,]
+summary(df_qual[groups==6,])
 
-#Faire les test chi carrés pour les différentes variables dans les différents groupes
 
-# Initialisation d'un dataframe pour stocker les résultats
+
+
+df_nombre_individus <- data.frame(Groupe = as.integer(names(nombre_individus_par_groupe)), Nombre_Individus = as.integer(nombre_individus_par_groupe))
+
+print(df_nombre_individus)
+# Résumé du nombre d'individus par groupe
+summary_groups <- summary(groups)
+
+barplot(summary_groups, main = "Répartition des individus par groupe", xlab = "Groupes", ylab = "Nombre d'individus")
+
+
+summary(df_qual[groups==6,])
+length(df_qual[groups==1,])
+for(variable in names(df_qual)){
+  boxplot(df_qual[[variable]] ~ groups, main = paste( variable, 'by cluster'),ylab =variable  )
+
 chi_results_df <- data.frame(Variable = character(),
                              Test_statistic = numeric(),
                              P_value = numeric(),
                              stringsAsFactors = FALSE)
-
 qualitative_vars <- names(df_qual)[sapply(df_qual, is.factor)]
-
+###CHI 2
 for (i in seq_along(qualitative_vars)) {
-  var <- qualitative_vars[i]
-  
+  var <- qualitative_vars[i] 
   contingency_table <- table(df_qual[[var]], groups)
   expected_table <- chi_test$expected
-  # Test du chi-deux d'indépendance
+  conditions_satisfaites <- "Oui"
+  if (sum(contingency_table) < 40) {
+    conditions_satisfaites <- "Non (Échantillon trop petit)"
+  }
+  if (any(expected_table < 5)) {
+    conditions_satisfaites <- "Non (Fréquence attendue < 5)"
+  }
+  
   chi_test <- chisq.test(contingency_table)
   
   chi_results_df <- rbind(chi_results_df, data.frame(Variable = var,
@@ -95,61 +147,76 @@ for (i in seq_along(qualitative_vars)) {
                                                      P_value = chi_test$p.value))
 }
 
-table_plot <- kable(chi_results_df, format = "html", caption = "Résultats du test du chi-deux") %>%
-  kable_styling("striped")
-
-print(table_plot)
+print(chi_results_df)
 
 
-###########  Kmeans varariables qualitative sur toute la db
+K-MEANS qualitatif  ##################################################################################
+
 
 within=NULL
 for(i in 1:11)
   within[i]=sum(kmeans(chi_square_dist, centers = i)$withinss)
-plot(1:11, within, type="b")
+plot(1:11, within, type = "b", 
+     xlab = "Number of Clusters", 
+     ylab = "Intra-group Inertia",
+     main = "Cluster Selection")
+points(3, within[3], col = "red", pch = 16)
+     main = "Cluster Selection"
 
-# Calculer la distance de Gower
+# Calculer la distance chisquare
 gower_dist <- daisy(df_qual, metric = "gower")
 
-# Appliquer l'algorithme K-means
+# algorithme K-means
 kmeans_clusters <- kmeans(chi_square_dist, centers = 3)
 
-# Afficher les résultats
 print(kmeans_clusters)
 
-for(variable in names(df_qual)) {
-  plot(df_qual[[variable]], col = kmeans_clusters$cluster, pch = 19,        main = paste("Nuage de points de", variable, "avec clusters"))
-  legend("topright", legend = unique(kmeans_clusters$cluster), col = unique(kmeans_clusters$cluster), pch = 19, title = "Cluster")
+for (variable in names(df_qual)) {
+  boxplot(df_qual[[variable]] ~ kmeans_clusters$cluster,
+          col = kmeans_clusters$cluster,
+          main = paste("Boxplot of", variable, "with clusters"),
+          xlab = "Cluster",
+          ylab = variable)
+  
+  legend("topright",
+         legend = unique(kmeans_clusters$cluster),
+         col = unique(kmeans_clusters$cluster),
+         pch = 19,
+         title = "Cluster")
 }
 
-# Identifier les observations appartenant à chaque cluster
+nombre_par_groupe <- table(kmeans_clusters$cluster)
+
+tableau_groupes <- data.frame(Cluster = names(nombre_par_groupe),
+                              Nombre_individus = as.numeric(nombre_par_groupe))
+
+print(tableau_groupes)
+
 cluster_labels <- kmeans_clusters$cluster
 
-# Ajouter les étiquettes de cluster à votre dataframe
 df_qual$cluster <- factor(cluster_labels)
 
-# Créer un nouveau dataframe avec les étiquettes de cluster
 clustered_df <- cbind(df_qual, cluster = factor(cluster_labels))
 
 # Appliquer la fonction aggregate pour calculer les statistiques descriptives par cluster
 summary_by_cluster <- aggregate(. ~ cluster, data = clustered_df, FUN = summary)
 
-# Afficher les statistiques descriptives pour chaque variable dans chaque cluster
 print(summary_by_cluster)
+
+
+
 
 HCA variables quantitatives sur toute la DB#################################################
 
-# Calculer la matrice de distances
-d <- dist(df_quant, method = "euclidean")
+d <- dist(scale(df_quant), method = "euclidean")
 
-# Effectuer le clustering hiérarchique
 clust <- hclust(d, method = "ward.D2")
 
-# Créer une liste pour stocker les indices silhouette
 silhouette_values <- numeric(0)
-
+silhouette <- numeric(0)
+silhouette_index <- numeric(0)
 # Nombre de coupures à tester
-max_k <- 20
+max_k <- 100
 
 # Boucle à travers différentes valeurs de coupure
 for (k in 2:max_k) {
@@ -161,17 +228,16 @@ for (k in 2:max_k) {
   
   # Calculer l'indice silhouette moyen
   avg_silhouette <- mean(silhouette[, "sil_width"])
-  
+  silhouette_index[k] <- (avg_silhouette)
   # Stocker l'indice silhouette moyen
   silhouette_values <- c(silhouette_values, avg_silhouette)
 }
-
+plot(silhouette_index,xlab = "nb_clusters")
 # Trouver le nombre optimal de coupures qui maximise l'indice silhouette moyen
 optimal_k <- which.max(silhouette_values) + 1
 
 # Afficher le nombre optimal de coupures
 print(paste("Nombre optimal de coupures (selon l'indice silhouette) :", optimal_k))
-
 # Tracer le graphique de l'indice silhouette moyen en fonction du nombre de coupures
 plot(2:max_k, silhouette_values, type = "b", 
      main = "Indice silhouette en fonction du nombre de coupures", 
@@ -180,24 +246,28 @@ plot(2:max_k, silhouette_values, type = "b",
 # Ajouter une ligne verticale pour indiquer le nombre optimal de coupures
 abline(v = optimal_k, col = "red", lty = 2)
 
+
 #clustering
 
-d_quant <- dist(df_quant, method="euclidean")
+d_quant <- dist(scale(df_quant), method="euclidean")
 hc_quant <- hclust(d_quant, method="ward.D2")
-clusters_quant <- cutree(hc_quant, h = 3)
-plot(hc_quant)
-rect.hclust(hc_quant, k=3, border="red")
+clusters_quant <- cutree(hc_quant, h = optimal_k)
+plot(hc_quant,cex = 0.6, hang = -1)
+rect.hclust(hc_quant, k=optimal_k, border="red")
 
 #Création des groupes
-groups_quant=cutree(hc_quant, k=3) 
+groups_quant=cutree(hc_quant, k=2) 
 df_quant[groups_quant==1,] 
 df_quant[groups_quant==2,] 
-df_quant[groups_quant==3,] 
+
+
+effectif_groupes <- table(groups_quant)
+print(effectif_groupes)
 
 
 
 for(variable in names(df_quant)){
-  boxplot(df_quant[[variable]] ~ groups_quant, main = paste('Boxplot of', variable, 'for each cluster'))
+  boxplot(df_quant[[variable]] ~ groups_quant, main = paste('Boxplot', variable, 'for each cluster'))
 }
 
 #Test Anova pour les moyennes de la variable Meat dans les différents clusters
@@ -210,28 +280,24 @@ for (variable in names(df_quant)) {
   # Construire la formule pour la régression linéaire
   formula <- as.formula(paste(variable, "~ groups_quant"))
   
-  # Effectuer l'ANOVA
+  # Effectuer ANova
   anova_result <- anova(lm(formula, data = df_quant))
   
-  # Stocker le résultat de l'ANOVA dans la liste
+
   anova_results[[variable]] <- anova_result
 }
 
-# Afficher les résultats
 print(anova_results)
 
 #Test de Student
+  
 # Initialiser une liste pour stocker les résultats des tests t
 t_test_results <- list()
 
-# Nombre total de groupes
 num_groups <- max(groups_quant)
-
-# Initialiser une matrice pour stocker les résultats des tests t pour chaque paire de groupes
 diff_matrix <- matrix("", nrow = length(names(df_quant)), ncol = num_groups,
                       dimnames = list(names(df_quant), paste0("G", 1:num_groups)))
 
-# Boucle à travers chaque variable
 for (variable in names(df_quant)) {
   # Initialiser une matrice pour stocker les résultats des tests t pour chaque paire de groupes
   t_test_matrix <- matrix("", nrow = num_groups, ncol = num_groups)
@@ -265,22 +331,152 @@ for (variable in names(df_quant)) {
   t_test_results[[variable]] <- t_test_matrix
 }
 
-# Afficher la matrice des différences
 print(diff_matrix)
 print(t_test_results)
 
 
-K means variable quantitative sur toute la DB##################################################
+#K-means variable quantitatif sur toute la db ####################################################
 
 within=NULL
 for(i in 1:11)
-  within[i]=sum(kmeans(df_quant,centers=i)$withinss)
+  within[i]=sum(kmeans(scale(df_quant),centers=i)$withinss)
 plot(1:11, within, type="b")
 
-clust2=kmeans(df_quant, centers=3) 
-plot(df_quant, col=clust2$cluster, pch=19, cex=2)
+clust2=kmeans(df_quant, centers=3)
+plot(scale(df_quant), col=clust2$cluster, pch=19, cex=2)
 abline(h=0, v=0)
 legend("topright", legend = unique(clust2$cluster), col = unique(clust2$cluster), pch = 19, title = "Cluster")
+
+Clustering ACM###################################################################################
+
+  
+scores_mca <- read.csv("C:/Users/denis/Downloads/caca.csv")
+df <- read.csv("preprocessedData.csv")
+
+df$newClient<-as.factor(df$newClient)
+df$Broker <- as.factor(df$Broker)
+df$Lapse <- as.factor(df$Lapse)
+df$Policies<- as.factor(df$Policies)
+df$Urban <- as.factor(df$Urban)
+df$Diesel <- as.factor(df$Diesel)
+df$Payment <- as.factor(df$Payment)
+df$Second_driver <- as.factor(df$Second_driver)
+df$Type_risk <- as.factor(df$Type_risk)
+
+
+# In case we need it in the future:
+preprocessed_df <- df
+
+#df_quant <- df %>% select(where(is.numeric))
+df_qual <- df %>% select(where(~ !is.numeric(.)))
+
+
+
+scores_mca <- scores_mca[,2:4]
+
+df2 <- df_qual
+
+d=dist(scores_mca, method="euclidean") #matrice des distances euclidiennes
+clust_mca=hclust(d, method="ward.D2")
+
+# Créer une liste pour stocker les indices silhouette
+silhouette_values <- numeric(0)
+silhouette <- numeric(0)
+silhouette_index <- numeric(0)
+# Nombre de coupures à tester
+max_k <- 20
+
+# Boucle à travers différentes valeurs de coupure
+for (k in 2:max_k) {
+  # Découper le dendrogramme pour obtenir les clusters
+  clusters_mca <- cutree(clust_mca, k = k)
+  
+  # Calculer l'indice silhouette pour les clusters obtenus
+  silhouette <- silhouette(clusters_mca, d)
+  
+  # Calculer l'indice silhouette moyen
+  avg_silhouette <- mean(silhouette[, "sil_width"])
+  silhouette_index[k] <- (avg_silhouette)
+  # Stocker l'indice silhouette moyen
+  silhouette_values <- c(silhouette_values, avg_silhouette)
+}
+plot(silhouette_index,xlab = "nb_clusters")
+# Trouver le nombre optimal de coupures qui maximise l'indice silhouette moyen
+optimal_k <- which.max(silhouette_values) + 1
+
+# Afficher le nombre optimal de coupures
+print(paste("Nombre optimal de coupures (selon l'indice silhouette) :", optimal_k))
+# Tracer le graphique de l'indice silhouette moyen en fonction du nombre de coupures
+plot(2:max_k, silhouette_values, type = "b", 
+     main = "silhouette index and number of cluster", 
+     xlab = "Clusters", ylab = "Index")
+
+# Ajouter une ligne verticale pour indiquer le nombre optimal de coupures
+abline(v = optimal_k, col = "red", lty = 2)
+
+
+
+scores_mca <- cbind(scores_mca, Cost_claims_year = scale(preprocessed_df$Cost_claims_year), Premium = scale(preprocessed_df$Premium))
+scores_mca <- scores_mca[,c(1,2,3,6,7)]
+groups=cutree(clust_mca, k=optimal_k) 
+ summary(scores[groups==1,]) 
+# scores[groups==2,]
+
+anova_cost_mca <- anova(lm(as.data.frame(scores_mca)$Cost_claims_year~groups))
+
+bonferroni_test <- pairwise.t.test(scores_mca$Cost_claims_year, groups, p.adjust.method = "bonferroni")
+print(bonferroni_test)
+
+
+anova_premium_mca <- anova(lm(as.data.frame(scores_mca)$Premium~groups))
+
+bonferroni_test <- pairwise.t.test(scores_mca$Premium, groups, p.adjust.method = "bonferroni")
+print(bonferroni_test)
+
+
+#select=(groups==1|groups==2) #opérateur logique "ou"
+#test=t.test(as.data.frame(scores)$Cost_claims_year[select]~groups[select])
+#test
+
+#test=t.test(as.data.frame(scores)$Premium[select]~groups[select])
+#test
+
+# Uses 30 different indices and choses the optimal number of clusters based on which cluster is picked most by the indices.
+# Majority rule leads to the choice of 4 clusters (Uncomment to run - SLOW): 
+#### nb <- NbClust(scores, distance = "euclidean", min.nc = 2, max.nc = 10, method = "kmeans")
+
+## For KMeans, we keep the amount of clusters for which the intragroup variance begins to stabilise (variance within each group becomes stable): 
+scores_mca <- scores_mca[1:3]
+within=NULL
+for(i in 1:10) within[i]=sum(kmeans(scores_mca,centers=i)$withinss)
+plot(1:10, within, type="b")
+abline(v = 4, col = "blue", lty = 2)
+#Nombre de clusters retenu : 4
+
+#Graphique du premier plan factoriel et de l'appartenance aux clusters
+clust2=kmeans(scores_mca, 4) #k-means avec 5 clusters
+fviz_cluster(clust2, scores_mca[,c(1,2)], geom = "point")
+fviz_cluster(clust2, scores_mca[,c(1,3)], geom = "point")
+fviz_cluster(clust2, scores_mca[,c(2,3)], geom = "point")
+
+scatterplot3d(scores, y=NULL, z=NULL, pch = 20, color = clust2$cluster)
+
+scores <- as.data.frame(cbind(scores_mca, Cost_claims_year = scale(preprocessed_df$Cost_claims_year), Premium = scale(preprocessed_df$Premium)))
+boxplot(scores$Cost_claims_year~clust2$cluster, main='Boxplot of Cost of claims in the year for each cluster')
+boxplot(scores$Premium~clust2$cluster, main='Boxplot of Premium for each cluster')
+
+
+anova(lm(scores$Cost_claims_year~clust2$cluster))
+anova(lm(scores$Premium~clust2$cluster))
+
+# Since we saw that Premium was a very variable heavily affected by outliers, we decided to do a Kruskal Wallis test. 
+# This concludes that the clusters do differ in terms of Premium, while they do not differ for the Cost_claims_year (when accounting for outliers).
+kruskal.test(scores$Cost_claims_year~clust2$cluster, data = as.data.frame(scores))
+kruskal.test(scores$Premium~clust2$cluster, data = as.data.frame(scores))
+
+# Last plot:
+fviz_mca_biplot(scores_mca, label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
+fviz_mca_biplot(scores_mca, axes = c(1, 3), label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
 
 ####################################Methode algorithmique densité (density based spatial clustering of application with noise) 
 
