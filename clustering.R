@@ -350,7 +350,7 @@ legend("topright", legend = unique(clust2$cluster), col = unique(clust2$cluster)
 Clustering ACM###################################################################################
 
   
-scores_mca <- read.csv("C:/Users/denis/Downloads/caca.csv")
+scores_mca <- mca3$ind$coord[,1:3]  #Voir table MCA
 df <- read.csv("preprocessedData.csv")
 
 df$newClient<-as.factor(df$newClient)
@@ -379,14 +379,13 @@ df2 <- df_qual
 d=dist(scores_mca, method="euclidean") #matrice des distances euclidiennes
 clust_mca=hclust(d, method="ward.D2")
 
-# Créer une liste pour stocker les indices silhouette
+# Trouver le nombre de cluster optimal
 silhouette_values <- numeric(0)
 silhouette <- numeric(0)
 silhouette_index <- numeric(0)
 # Nombre de coupures à tester
 max_k <- 20
 
-# Boucle à travers différentes valeurs de coupure
 for (k in 2:max_k) {
   # Découper le dendrogramme pour obtenir les clusters
   clusters_mca <- cutree(clust_mca, k = k)
@@ -404,14 +403,10 @@ plot(silhouette_index,xlab = "nb_clusters")
 # Trouver le nombre optimal de coupures qui maximise l'indice silhouette moyen
 optimal_k <- which.max(silhouette_values) + 1
 
-# Afficher le nombre optimal de coupures
 print(paste("Nombre optimal de coupures (selon l'indice silhouette) :", optimal_k))
-# Tracer le graphique de l'indice silhouette moyen en fonction du nombre de coupures
 plot(2:max_k, silhouette_values, type = "b", 
      main = "silhouette index and number of cluster", 
      xlab = "Clusters", ylab = "Index")
-
-# Ajouter une ligne verticale pour indiquer le nombre optimal de coupures
 abline(v = optimal_k, col = "red", lty = 2)
 
 
@@ -442,8 +437,6 @@ print(bonferroni_test)
 #test
 
 # Uses 30 different indices and choses the optimal number of clusters based on which cluster is picked most by the indices.
-# Majority rule leads to the choice of 4 clusters (Uncomment to run - SLOW): 
-#### nb <- NbClust(scores, distance = "euclidean", min.nc = 2, max.nc = 10, method = "kmeans")
 
 ## For KMeans, we keep the amount of clusters for which the intragroup variance begins to stabilise (variance within each group becomes stable): 
 scores_mca <- scores_mca[1:3]
@@ -477,7 +470,10 @@ kruskal.test(scores$Premium~clust2$cluster, data = as.data.frame(scores))
 # Last plot:
 fviz_mca_biplot(scores_mca, label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
 fviz_mca_biplot(scores_mca, axes = c(1, 3), label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
+Clustering après MCA #################################### 
 
+scores_pca <- read.csv("C:/Users/denis/Downloads/Denis.csv")
+       
 ####################################Methode algorithmique densité (density based spatial clustering of application with noise) 
 
 df <-  # Définition de la base de donnée (ACP,ACM) avec comme variables les composantes et le score
