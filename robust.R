@@ -58,10 +58,16 @@ dfquali <- data %>% select(where(is.character) | where(is.factor))
 MCD <- dfquanti %>% covRob(estim = "mcd", na.action = na.omit)# utlisation du MCD pour la robustesse
 distrob=sqrt(mahalanobis(dfquanti, MCD$center, MCD$cov)) #calcul distance de mahnobis
 par(mfrow = c(1,1))
+# Calculer les limites
+xrange <- range(distrob)
+yrange <- range(distrob)
+
+# Ajuster les limites pour centrer les données
+plot(distrob, ylab="Robust Mahalanobis distances", xlim=xrange, ylim=yrange)
+
 plot(distrob, ylab="Robust Mahalanobis distances")
 cutoff=sqrt(qchisq(0.975,df=ncol(dfquanti)))
 abline(h=cutoff, col="red")
-#identify(distrob, labels=row.names(data), cex=1.5)
 New_db <- cbind(dfquanti, dfquali)
 rejected <- New_db %>% filter(distrob >cutoff) %>% nrow()
 New_db <- New_db %>% filter(distrob <=cutoff) %>% select(-distrob)
