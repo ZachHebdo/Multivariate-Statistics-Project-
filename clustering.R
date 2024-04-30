@@ -471,7 +471,7 @@ fviz_mca_biplot(scores_mca, axes = c(1, 3), label = "var", repel = TRUE, alpha.i
        
        Clustering PCA  #################################### 
 
-scores_pca <- scores  #from pca analysis
+scores_pca <- pca$scores
 df <- read.csv("C:/Users/denis/Downloads/preprocessedData (1).csv")
 
 df_quant <- df %>% select(where(is.numeric))
