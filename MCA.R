@@ -1,4 +1,5 @@
 library(dplyr)
+library(ggplot2)
 library(tidyverse)
 library(dummy)
 library(FactoMineR)
@@ -8,6 +9,43 @@ library(ade4)
 library(ggrepel)
 library(scatterplot3d)
 library(NbClust)
+
+# Function to place multiple plots next to eachother:
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+    library(grid)
+    
+    # Make a list from the ... arguments and plotlist
+    plots <- c(list(...), plotlist)
+    
+    numPlots = length(plots)
+    
+    # If layout is NULL, then use 'cols' to determine layout
+    if (is.null(layout)) {
+        # Make the panel
+        # ncol: Number of columns of plots
+        # nrow: Number of rows needed, calculated from # of cols
+        layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                         ncol = cols, nrow = ceiling(numPlots/cols))
+    }
+    
+    if (numPlots==1) {
+        print(plots[[1]])
+        
+    } else {
+        # Set up the page
+        grid.newpage()
+        pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+        
+        # Make each plot, in the correct location
+        for (i in 1:numPlots) {
+            # Get the i,j matrix positions of the regions that contain this subplot
+            matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+            
+            print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                            layout.pos.col = matchidx$col))
+        }
+    }
+}
 
 df = read.csv("preprocessedData.csv")
 
@@ -31,6 +69,29 @@ preprocessed_df <- df
 df_qual <- df %>% select(where(~ !is.numeric(.)))
 glimpse(df_qual)
 
+###############################################################################
+# Chi-square test of independence to each combination of variables: 
+
+P_value <- data.frame(row.names = names(df_qual))
+Chi_statistic <- data.frame(row.names = names(df_qual))
+for (i in 1:dim(df_qual)[2]) {
+    for (j in i:dim(df_qual)[2]) {
+        v <- chisq.test(df_qual[,i], df_qual[,j])
+        Chi_statistic[i, j] <- round(v$statistic, 3)
+        P_value[i, j] <- round(v$p.value, 3)
+    }
+}
+colnames(P_value) <- names(df_qual)
+colnames(Chi_statistic) <- names(df_qual)
+P_value <- P_value %>% replace(is.na(.), " ")
+Chi_statistic <- Chi_statistic %>% replace(is.na(.), " ")
+P_value <- P_value %>% replace(.<0.05, " ")
+P_value
+Chi_statistic
+
+# We fail to reject independence for 23 out of 66 possible combinations between the 12 variables.   
+################################################################################
+# Counting the variables
 countVar <- function(var) {
     df_qual %>% count({{var}})
 }
@@ -83,35 +144,70 @@ eigenCDT = get_eigenvalue(mca1)
 all(near(eigenBurt[,1], eigenCDT[,1]^2))
 
 # On vérifie qu'on doit garder 4 dimensions, considerant le cutoff de 1/P.
-fviz_screeplot(mca1, ncp = 8, addlabels = TRUE, ylim = c(0, 30)) + 
-    geom_hline(yintercept=cutoff, linetype=2, color="red")
+fviz_screeplot(mca1, ncp = 16, addlabels = TRUE, ylim = c(0, 30)) + 
+    geom_hline(yintercept=cutoff, linetype=2, color="red") + 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 15))
 
-fviz_mca_var(mca1, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shape.var = 19, alpha = 0.7, 
-             col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+p1 <- fviz_mca_var(mca1, geom = c("point", "text"), axes = c(2, 1), repel = TRUE, shape.var = 19, alpha = 0.7, 
+             col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")) + 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 15))
 
-fviz_mca_var(mca1, geom = c("point", "text"), axes = c(1, 3), repel = TRUE, shape.var = 19, alpha = 0.7, 
-             col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
-
-fviz_mca_var(mca1, geom = c("point", "text"), axes = c(1, 4), repel = TRUE, shape.var = 19, alpha = 0.7, 
-             col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+p2 <- fviz_mca_var(mca1, geom = c("point", "text"), axes = c(1, 3), repel = TRUE, shape.var = 19, alpha = 0.7, 
+             col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")) + 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 15))
+p1
+p2
+multiplot(p1, p2, cols=1)
 
 mca1$var$coord[,1:3] #Coordonnées des modalités sur les axes principaux
 mca1$var$contrib[,1:3] #Contribution des modalités à la construction des axes principaux
 mca1$var$cos2[,1:3] #Qualité de représentation des modalités sur les axes principaux
 mca1$var$eta2[,1:3] # Correlation au carré entre les VARIABLES et les axes principaux 
 
-fviz_contrib(mca1, choice = "var", axes = 1)
-fviz_contrib(mca1, choice ="var", axes = 2)
-fviz_contrib(mca1, choice ="var", axes = 3)
+v0 <- fviz_screeplot(mca1, ncp = 16, addlabels = TRUE, ylim = c(0, 30)) + 
+    geom_hline(yintercept=cutoff, linetype=2, color="red") + 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 20))
+v1 <- fviz_contrib(mca1, choice = "var", axes = 1, top = 5)+ 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 20)) + ggtitle("Dim. 1") + coord_fixed(ratio = 1/2) 
+v2 <- fviz_contrib(mca1, choice ="var", axes = 2, top = 5)+ 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 20)) + ggtitle("Dim. 2") + coord_fixed(ratio = 2/5) 
+v3 <- fviz_contrib(mca1, choice ="var", axes = 3, top = 5)+ 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 20)) + ggtitle("Dim. 3") + coord_fixed(ratio = 7/16) 
+v0
+v1
+v2
+v3
 
-fviz_cos2(mca1, choice = "var", axes = 1)
-fviz_cos2(mca1, choice = "var", axes = 2)
-fviz_cos2(mca1, choice = "var", axes = 3)
+multiplot(v1, v2, v3, cols=3) 
 
+c0 <- fviz_cos2(mca1, choice = "var", axes = 1, top = 5) + 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 20)) + ggtitle("Dim. 1") + ylab("Cos2") + coord_fixed(ratio = 4/1)
+c1 <- fviz_cos2(mca1, choice ="var", axes = 2, top = 5)+ 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 20)) + ggtitle("Dim. 2") + ylab("Cos2") + coord_fixed(ratio = 7/1)
+c2 <- fviz_cos2(mca1, choice ="var", axes = 3, top = 5) + 
+    theme(text = element_text(size = 15),
+          axis.text = element_text(size = 20)) + ggtitle("Dim. 3") + ylab("Cos2") + coord_fixed(ratio = 7/1)
+c0
+c1
+c2
+multiplot(c0, c1, c2, cols=3)
 ###############################################################################
 # Correlation circle (only positive values, since #eta2 is the correlation squared)
 
 fviz_mca_var(mca1, choice = "mca.cor", 
+             repel = TRUE, # Avoid text overlapping (slow)
+             ggtheme = theme_minimal())
+
+fviz_mca_var(mca1, choice = "mca.cor", axes = c(1, 3),
              repel = TRUE, # Avoid text overlapping (slow)
              ggtheme = theme_minimal())
 
@@ -148,7 +244,7 @@ fviz_mca_var(mca3, geom = c("point", "text"), axes = c(1, 2), repel = TRUE, shap
 
 scores <- mca3$ind$coord[,1:3]
 d=dist(scores, method="euclidean") #matrice des distances euclidiennes
-clust=hclust(d, method="ward.D2", labels = FALSE) #clustering hiérarchique ascendant basé sur le type de lien simple
+clust=hclust(d, method="ward.D2") #clustering hiérarchique ascendant basé sur le type de lien simple
 plot(clust) #dendogramme
 rect.hclust(clust, k=2, border="red") #supposons que l'on veuille k=2 clusters
 
@@ -189,21 +285,71 @@ fviz_cluster(clust2, scores[,c(2,3)], geom = "point")
 scatterplot3d(scores, y=NULL, z=NULL, pch = 20, color = clust2$cluster)
 
 scores <- as.data.frame(cbind(scores, Cost_claims_year = preprocessed_df$Cost_claims_year, Premium = preprocessed_df$Premium))
+
 boxplot(scores$Cost_claims_year~clust2$cluster, main='Boxplot of Cost of claims in the year for each cluster')
 boxplot(scores$Premium~clust2$cluster, main='Boxplot of Premium for each cluster')
 
-
 anova(lm(scores$Cost_claims_year~clust2$cluster))
 anova(lm(scores$Premium~clust2$cluster))
+
+select=(clust2$cluster==1|clust2$cluster==2) #opérateur logique "ou"
+test=wilcox.test(as.data.frame(scores)$Cost_claims_year[select]~clust2$cluster[select])
+test
+test=wilcox.test(as.data.frame(scores)$Premium[select]~clust2$cluster[select])
+test
+
+select=(clust2$cluster==1|clust2$cluster==3) #opérateur logique "ou"
+test=wilcox.test(as.data.frame(scores)$Cost_claims_year[select]~clust2$cluster[select])
+test
+test=wilcox.test(as.data.frame(scores)$Premium[select]~clust2$cluster[select])
+test
+
+select=(clust2$cluster==1|clust2$cluster==4) #opérateur logique "ou"
+test=wilcox.test(as.data.frame(scores)$Cost_claims_year[select]~clust2$cluster[select])
+test
+test=wilcox.test(as.data.frame(scores)$Premium[select]~clust2$cluster[select])
+test
+
+select=(clust2$cluster==2|clust2$cluster==3) #opérateur logique "ou"
+test=wilcox.test(as.data.frame(scores)$Cost_claims_year[select]~clust2$cluster[select])
+test
+test=wilcox.test(as.data.frame(scores)$Premium[select]~clust2$cluster[select])
+test
+
+select=(clust2$cluster==2|clust2$cluster==4) #opérateur logique "ou"
+test=wilcox.test(as.data.frame(scores)$Cost_claims_year[select]~clust2$cluster[select])
+test
+test=wilcox.test(as.data.frame(scores)$Premium[select]~clust2$cluster[select])
+test
+
+select=(clust2$cluster==3|clust2$cluster==4) #opérateur logique "ou"
+test=wilcox.test(as.data.frame(scores)$Cost_claims_year[select]~clust2$cluster[select])
+test
+test=wilcox.test(as.data.frame(scores)$Premium[select]~clust2$cluster[select])
+test
 
 # Since we saw that Premium was a very variable heavily affected by outliers, we decided to do a Kruskal Wallis test. 
 # This concludes that the clusters do differ in terms of Premium, while they do not differ for the Cost_claims_year (when accounting for outliers).
 kruskal.test(scores$Cost_claims_year~clust2$cluster, data = as.data.frame(scores))
 kruskal.test(scores$Premium~clust2$cluster, data = as.data.frame(scores))
 
-# Last plot:
+################################################################################
+# USING THE LOG INSTEAD (NO SIGNIFICANT DIFFERENCE TO TEST RESULTS):
+boxplot(log(scores$Cost_claims_year)~clust2$cluster, main='Boxplot of Cost of claims in the year for each cluster')
+boxplot(log(scores$Premium)~clust2$cluster, main='Boxplot of Premium for each cluster')
+
+anova(lm(log(scores$Cost_claims_year)~clust2$cluster))
+anova(lm(log(scores$Premium)~clust2$cluster))
+
+# Since we saw that Premium was a very variable heavily affected by outliers, we decided to do a Kruskal Wallis test. 
+# This concludes that the clusters do differ in terms of Premium, while they do not differ for the Cost_claims_year (when accounting for outliers).
+kruskal.test(log(scores$Cost_claims_year)~clust2$cluster, data = as.data.frame(scores))
+kruskal.test(log(scores$Premium)~clust2$cluster, data = as.data.frame(scores))
+################################################################################
+# Last plots:
 fviz_mca_biplot(mca3, label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
 fviz_mca_biplot(mca3, axes = c(1, 3), label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
+fviz_mca_biplot(mca3, axes = c(2, 3), label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
 
 # #function to visualize the correlation circle 
 # corr_circle = function(x, y) {
@@ -234,6 +380,45 @@ fviz_mca_biplot(mca3, axes = c(1, 3), label = "var", repel = TRUE, alpha.ind = 0
 
 # cor <- sqrt(mca1$var$eta2)
 # corr_circle(cor[,1], cor[,2])
+
+df$cluster <- clust2$cluster
+
+# Now, count categories of Diesel within each cluster
+category_counts <- df %>%
+    group_by(cluster, Diesel) %>%
+    summarise(Count = n(), .groups = 'drop')
+
+# Display the counts
+print(category_counts)
+
+category_counts <- df %>%
+    group_by(cluster, newClient) %>%
+    summarise(Count = n(), .groups = 'drop')
+
+# Display the counts
+print(category_counts)
+
+category_counts <- df %>%
+    group_by(cluster, Type_risk) %>%
+    summarise(Count = n(), .groups = 'drop')
+
+# Display the counts
+print(category_counts)
+
+category_counts <- df %>%
+    group_by(cluster, Second_driver) %>%
+    summarise(Count = n(), .groups = 'drop')
+
+# Display the counts
+print(category_counts)
+
+category_counts <- df %>%
+    group_by(cluster, Age) %>%
+    summarise(Count = n(), .groups = 'drop')
+
+# Display the counts
+print(category_counts)
+
 
 ################################################################################
 #  Calculating eigenvalues manually (Just for checking)
