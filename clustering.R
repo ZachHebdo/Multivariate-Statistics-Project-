@@ -291,7 +291,7 @@ print(anova_results)
 
 #Test de Student
   
-# Initialiser une liste pour stocker les résultats des tests t
+# liste pour stocker les résultats des tests t
 t_test_results <- list()
 
 num_groups <- max(groups_quant)
@@ -436,9 +436,6 @@ print(bonferroni_test)
 #test=t.test(as.data.frame(scores)$Premium[select]~groups[select])
 #test
 
-# Uses 30 different indices and choses the optimal number of clusters based on which cluster is picked most by the indices.
-
-## For KMeans, we keep the amount of clusters for which the intragroup variance begins to stabilise (variance within each group becomes stable): 
 scores_mca <- scores_mca[1:3]
 within=NULL
 for(i in 1:10) within[i]=sum(kmeans(scores_mca,centers=i)$withinss)
@@ -446,7 +443,7 @@ plot(1:10, within, type="b")
 abline(v = 4, col = "blue", lty = 2)
 #Nombre de clusters retenu : 4
 
-#Graphique du premier plan factoriel et de l'appartenance aux clusters
+#Graphique  de l'appartenance aux clusters
 clust2=kmeans(scores_mca, 4) #k-means avec 5 clusters
 fviz_cluster(clust2, scores_mca[,c(1,2)], geom = "point")
 fviz_cluster(clust2, scores_mca[,c(1,3)], geom = "point")
@@ -470,283 +467,94 @@ kruskal.test(scores$Premium~clust2$cluster, data = as.data.frame(scores))
 # Last plot:
 fviz_mca_biplot(scores_mca, label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
 fviz_mca_biplot(scores_mca, axes = c(1, 3), label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
-Clustering après MCA #################################### 
+Clustering PCA  #################################### 
 
-scores_pca <- read.csv("C:/Users/denis/Downloads/Denis.csv")
-       
-####################################Methode algorithmique densité (density based spatial clustering of application with noise) 
+scores_pca <- scores  #from pca analysis
+df <- read.csv("C:/Users/denis/Downloads/preprocessedData (1).csv")
 
-df <-  # Définition de la base de donnée (ACP,ACM) avec comme variables les composantes et le score
-qplot(df$x,df$y,shape = as.factor())
-
-  
-dbscan::kNNdistplot(df,k=5)
-  
-# exemple de fonctionnement de la fonction
-k <- dbscan(df,eps=.15,minPts=5)
-print(k)
-table(df,k$cluster)
+df_quant <- df %>% select(where(is.numeric))
+#df_qual <- df %>% select(where(~ !is.numeric(.)))
 
 
-# Définir la plage de valeurs pour epsilon
-eps_range <- seq(0.05, 0.5, by = 0.05)
 
-# Initialiser un vecteur pour stocker le nombre de clusters pour chaque valeur de epsilon
-num_clusters <- numeric(length(eps_range))
+scores_pca <- scores_pca[,2:4]
 
-# Exécuter DBSCAN pour chaque valeur de epsilon et stocker le nombre de clusters
-for (i in seq_along(eps_range)) {
-  k <- dbscan(df, eps = eps_range[i], MinPts = 5)
-  num_clusters[i] <- length(unique(k$cluster[k$cluster != 0]))
+df2 <- df_quant
+
+d=dist(scores_pca, method="euclidean") #matrice des distances euclidiennes
+clust_pca=hclust(d, method="ward.D2")
+
+# liste pour stocker les indices silhouette
+silhouette_values <- numeric(0)
+silhouette <- numeric(0)
+silhouette_index <- numeric(0)
+# Nombre de coupures à tester
+max_k <- 20
+
+# 
+for (k in 2:max_k) {
+  # Découper le dendrogramme pour obtenir les clusters
+  clusters_pca <- cutree(clust_pca, k = k)
+    silhouette <- silhouette(clusters_pca, d)
+    avg_silhouette <- mean(silhouette[, "sil_width"])
+  silhouette_index[k] <- (avg_silhouette)
+  silhouette_values <- c(silhouette_values, avg_silhouette)
 }
+plot(silhouette_index,xlab = "nb_clusters")
+# Trouver le nombre optimal de coupures qui maximise l'indice silhouette moyen
+optimal_k <- which.max(silhouette_values) + 1
 
-# Tracer le nombre de clusters en fonction de epsilon
-plot(eps_range, num_clusters, type = "b", 
-     main = "Nombre de clusters en fonction de epsilon",
-     xlab = "Epsilon (eps)", ylab = "Nombre de clusters")
+print(paste("Nombre optimal de coupures (selon l'indice silhouette) :", optimal_k))
+# graphique de l'indice silhouette moyen en fonction du nombre de coupures
+plot(2:max_k, silhouette_values, type = "b", 
+     main = "silhouette index and number of cluster", 
+     xlab = "Clusters", ylab = "Index")
+abline(v = optimal_k, col = "red", lty = 2)
+
+plot(clust_pca)
+rect.hclust(clust_pca, k= 6, border="red")
 
 
-#  Nuage de points coloré par cluster
-ggplot(data = df, aes(x = x, y = y, color = factor(k$cluster))) +
-  geom_point() +
-  labs(title = "Clusters identifiés par DBSCAN",
-       x = "Variable x", y = "Variable y") +
-  theme_minimal()
+scores_pca <- cbind(scores_pca, Cost_claims_year = scale(preprocessed_df$Cost_claims_year), Premium = scale(preprocessed_df$Premium))
+groups=cutree(clust_pca, k=optimal_k) 
+ summary(scores[groups==6,])
 
-#  Visualisation des distances kNN
-dbscan::kNNdistplot(df, k = 5)
+anova_cost_pca <- anova(lm(as.data.frame(scores_pca)$Cost_claims_year~groups))
+bonferroni_test <- pairwise.t.test(scores_pca$Cost_claims_year, groups, p.adjust.method = "bonferroni")
+print(bonferroni_test)
 
-#  Analyse des bruits
+anova_premium_pca <- anova(lm(as.data.frame(scores_pca)$Premium~groups))
+bonferroni_test <- pairwise.t.test(scores_pca$Premium, groups, p.adjust.method = "bonferroni")
+print(bonferroni_test)
 
-ggplot(data = df, aes(x = x, y = y)) +
-  geom_point(data = subset(df, k$cluster == -1), color = "red") +
-  geom_point(data = subset(df, k$cluster != -1), color = "blue") +
-  labs(title = "Bruit identifié par DBSCAN",
-       x = "Variable x", y = "Variable y") +
-  theme_minimal()
-
-#K-means (voir TP)###############################################################################################################################################################
-
+scores_pca <- scores_pca[1:3]
 within=NULL
-for(i in 1:11)
-within[i]=sum(kmeans(df,centers=i)$withinss)
-plot(1:11, within, type="b")
+for(i in 1:10) within[i]=sum(kmeans(scores_pca,centers=i)$withinss)
+plot(1:10, within, type="b",xlab = "clusters",ylab = "intra_group_inertia")
+abline(v = 4, col = "blue", lty = 2)
+#Nombre de clusters retenu : 4
 
-clust2=kmeans(df, centers=5)
-plot(df, col=clust2$cluster, pch=19, cex=2)
-abline(h=0, v=0)
+#Graphique du premier plan factoriel et de l'appartenance aux clusters
+clust2=kmeans(scores_pca, 4) #k-means avec 5 clusters
+fviz_cluster(clust2, scores_pca[,c(1,2)], geom = "point")
+fviz_cluster(clust2, scores_pca[,c(1,3)], geom = "point")
+fviz_cluster(clust2, scores_pca[,c(2,3)], geom = "point")
 
+scatterplot3d(scores_pca, y=NULL, z=NULL, pch = 20, color = clust2$cluster)
 
-#Rajouter des evaluation des clusters du style anova et student
-
-#Methode HCA####################################################################################################################################################################################################
-
-
-
-#On va tester HCA avec les methode de regroupement single et ward sur la distance euclidienne et selon les indexe dunn et silouhette
-
-linkage_methods <- c("single", "ward.D2")
-results <- list()
-
-silhouette_scores <- numeric(length = 10)
-dunn_index <- numeric(length = 10)
-
-for (method in linkage_methods) {
-  distance_matrix <- dist(df)
-  for (k in 2:10) {
-    hc <- hclust(distance_matrix, method = method)
-    clusters <- cutree(hc, k = k)
-    
-    # Calculer le coefficient de silhouette
-    silhouette_obj <- silhouette(clusters, distance_matrix)
-    silhouette_scores[k] <- mean(silhouette_obj[, "sil_width"])
-    
-    # Calculer l'indice de Dunn
-    dunn_index[k] <- dunn(distance_matrix, clusters)
-  }
-  
-  results[[method]] <- list(
-    silhouette = silhouette_scores,
-    dunn = dunn_index
-  )
-}
+scores <- as.data.frame(cbind(scores_pca, Cost_claims_year = scale(preprocessed_df$Cost_claims_year), Premium = scale(preprocessed_df$Premium)))
+boxplot(scores$Cost_claims_year~clust2$cluster, main='Boxplot of Cost of claims in the year for each cluster')
+boxplot(scores$Premium~clust2$cluster, main='Boxplot of Premium for each cluster')
 
 
+anova(lm(scores$Cost_claims_year~clust2$cluster))
+anova(lm(scores$Premium~clust2$cluster))
 
-par(mfrow = c(2, length(linkage_methods)))
-for (i in 1:length(linkage_methods)) {
-  method <- linkage_methods[i]
-  plot(2:10, results[[method]]$silhouette[2:10], type = "b", 
-       main = paste("Coefficient de silhouette (", method, ")"), 
-       xlab = "Nombre de clusters", ylab = "Score de silhouette")
-  plot(2:10, results[[method]]$dunn[2:10], type = "b", 
-       main = paste("Indice de Dunn (", method, ")"), 
-       xlab = "Nombre de clusters", ylab = "Indice de Dunn")
-}
+kruskal.test(scores$Cost_claims_year~clust2$cluster, data = as.data.frame(scores))
+kruskal.test(scores$Premium~clust2$cluster, data = as.data.frame(scores))
 
+# Last plot:
+fviz_pca_biplot(scores_pca, label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
+fviz_pca_biplot(scores_pca, axes = c(1, 3), label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
+       
 
-# Trouver le nombre de clusters avec le meilleur coefficient de silhouette
-best_silhouette <- sapply(results, function(method) max(method$silhouette))
-best_silhouette_method <- names(results)[which.max(best_silhouette)]
-best_silhouette_clusters <- which.max(results[[best_silhouette_method]]$silhouette)
-
-# Trouver le nombre de clusters avec le meilleur indice de Dunn
-best_dunn <- sapply(results, function(method) max(method$dunn))
-best_dunn_method <- names(results)[which.max(best_dunn)]
-best_dunn_clusters <- which.max(results[[best_dunn_method]]$dunn)
-
-# Afficher les résultats
-cat("Meilleur nombre de clusters selon le coefficient de silhouette:", best_silhouette_clusters,
-    "avec la méthode", best_silhouette_method, "\n")
-cat("Meilleur nombre de clusters selon l'indice de Dunn:", best_dunn_clusters,
-    "avec la méthode", best_dunn_method, "\n")
-
-
-#Vérification méthode optimale
-sim <- cluster.Sim(df,p =7, minClusterNo = 2, maxClusterNo = 10, icq = "S")
-
-
-# Créer les dendrogrammes avec les clusters optimaux
-par(mfrow = c(1, length(linkage_methods)))
-for (method in linkage_methods) {
-  # Créer le dendrogramme
-  hc <- hclust(distance_matrix, method = method)
-  plot(hc, main = paste("Dendrogramme (", method, ")"), cex = 0.8, hang = -1)
-  
-  # Ajouter le rectangle autour du cluster optimal
-  rect.hclust(hc, k = best_silhouette_clusters, border = "red")
-}
-
-
-#On va faire pareil pour des metriques adaptées aux HCA, le R^2 semi partiel et le pseudo t^2
-
-# Initialiser une liste pour stocker les résultats SPRSQ
-sprsq_values <- numeric(0)
-
-# Effectuer le clustering ascendant pour différents nombres de classes (de 2 à 10)
-for (k in 2:10) {
-  # Effectuer le clustering ascendant
-  hc <- hclust(dist(df), method = "single")
-  
-  # Couper le dendrogramme pour obtenir le nombre de classes spécifié
-  clusters <- cutree(hc, k = k)
-  
-  # Calculer l'indice SPRSQ
-  sprsq <- sum(hc$height[cutree(hc, k = k)]) / length(df)
-  
-  # Ajouter l'indice SPRSQ à la liste
-  sprsq_values <- c(sprsq_values, sprsq)
-}
-
-
-
-# Initialiser une liste pour stocker les résultats Pseudo-T2
-pst2_values <- numeric(0)
-
-
-# Effectuer le clustering ascendant pour différents nombres de classes (de 2 à 10)
-for (k in 2:10) {
-  # Effectuer le clustering ascendant
-  hc <- hclust(dist(df), method = "single")
-  
-  # Couper le dendrogramme pour obtenir le nombre de classes spécifié
-  clusters <- cutree(hc, k = k)
-  
-  # Calculer l'indice Pseudo-T2
-  mahalanobis_dist <- mahalanobis(df, colMeans(df), cov(df))
-  pst2 <- sum(mahalanobis_dist * (clusters - 1)^2)
-  
-  # Ajouter l'indice Pseudo-T2 à la liste
-  pst2_values <- c(pst2_values, pst2)
-}
-
-# Tracer les graphiques
-par(mfrow = c(1, 2))
-
-# Graphique pour l'indice SPRSQ
-plot(2:10, sprsq_values, type = "b", main = "Indice SPRSQ en fonction du nombre de clusters", 
-     xlab = "Nombre de clusters", ylab = "Valeur de l'indice SPRSQ")
-
-# Graphique pour l'indice Pseudo-T2
-plot(2:10, pst2_values, type = "b", main = "Indice Pseudo-T2 en fonction du nombre de clusters", 
-     xlab = "Nombre de clusters", ylab = "Valeur de l'indice Pseudo-T2")
-
-
-#idem pour l'indice Calinski-Harabasz
-
-# Créer une liste pour stocker les valeurs de l'indice de Calinski-Harabasz
-calinski_values <- numeric(0)
-
-# Effectuer le clustering ascendant pour différents nombres de classes (de 2 à 10)
-for (k in 2:10) {
-  # Effectuer le clustering ascendant
-  hc <- hclust(dist(df), method = "ward.D2")
-  
-  # Couper le dendrogramme pour obtenir le nombre de classes spécifié
-  clusters <- cutree(hc, k = k)
-  
-  # Calculer l'indice de Calinski-Harabasz
-  calinski <- calinhara(df, clusters)
-  
-  # Ajouter l'indice de Calinski-Harabasz à la liste
-  calinski_values <- c(calinski_values, calinski)
-}
-
-# Tracer le graphique
-plot(2:10, calinski_values, type = "b", 
-     main = "Indice de Calinski-Harabasz en fonction du nombre de clusters", 
-     xlab = "Nombre de clusters", ylab = "Valeur de l'indice Calinski-Harabasz")
-
-
-# rajouer des anova pour tous ces clusters
-
-#clustersim permet d'evaluer beaucoup de methodes d'un coup et d'optimiser les approches. Je le pose là mais je le supprimerai certainement, il prend trop de temps de calcul.
-
-sim <- cluster.Sim(df,p =7, minClusterNo = 2, maxClusterNo = 10, icq = "S") # le S est la methode d'aggregation single, on peut evidemment mettre ward ou une autre 
-print(sim)
-#Clustering spectral 
-set.seed(123)
-k <- 4
-
-# Matrice de similarité
-similarity_matrix <- exp(-dist(df)^2)
-
-# Decompo spectrale
-vp <- eigen(similarity_matrix)
-
-# Extraction du top k des vp
-k_vp <- vp$vectors[, 1:k]
-
-# K means sur les vp
-cluster_assignments <- kmeans(k_vp, centers = k)$cluster
-
-# Graphique 
-plot(df, col = clusters, pch = 19, 
-     main = "Spectral Clustering avec k-means")
-
-Topologie de kohonen simple mais on peut sortir le mot "reseau de neurones" aux solvaysiens#########################################################################################
-# Normalisation des données
-scaled_df <- scale(df)
-
-# Création du réseau de Kohonen
-set.seed(123)  # Pour la reproductibilité
-kohonen_network <- somgrid(xdim = 5, ydim = 5, topo = "hexagonal")
-
-# Entrainement du réseau
-kohonen_model <- som(scaled_df, grid = kohonen_network, rlen = 10000) # j'ai mis 10 000 mais je n'ai pas le temps de l'optimiser
-
-# Affichage des neurones
-plot(kohonen_model)
-som_cluster <- cutree(hclust(dist(df)), k = 5)
-# Ajouter des étiquettes aux neurones
-add.cluster.boundaries(kohonen_model, som_cluster)
-
-plot(kohonen_model, type="mapping", pchs=20, main="Kohonen Map avec les Clusters")
-
-
-# Ajouter une constante pour rendre les valeurs positives
-cluster_assignments_positive <- cluster_assignments + abs(min(cluster_assignments))
-
-# Visualiser les résultats sur un nuage de points avec des couleurs
-plot(df, col = cluster_assignments_positive, pch = 20, main = "Nuage de points avec les clusters")
-legend("topright", col = unique(cluster_assignments_positive), pch = 20)
