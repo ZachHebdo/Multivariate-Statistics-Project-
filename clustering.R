@@ -467,23 +467,18 @@ kruskal.test(scores$Premium~clust2$cluster, data = as.data.frame(scores))
 # Last plot:
 fviz_mca_biplot(scores_mca, label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
 fviz_mca_biplot(scores_mca, axes = c(1, 3), label = "var", repel = TRUE, alpha.ind = 0.15, col.var = "grey52", habillage = as.factor(clust2$cluster))
-Clustering PCA  #################################### 
+
+       
+       Clustering PCA  #################################### 
 
 scores_pca <- scores  #from pca analysis
 df <- read.csv("C:/Users/denis/Downloads/preprocessedData (1).csv")
 
 df_quant <- df %>% select(where(is.numeric))
 #df_qual <- df %>% select(where(~ !is.numeric(.)))
-
-
-
 scores_pca <- scores_pca[,2:4]
-
 df2 <- df_quant
-
-d=dist(scores_pca, method="euclidean") #matrice des distances euclidiennes
-clust_pca=hclust(d, method="ward.D2")
-
+       
 # liste pour stocker les indices silhouette
 silhouette_values <- numeric(0)
 silhouette <- numeric(0)
